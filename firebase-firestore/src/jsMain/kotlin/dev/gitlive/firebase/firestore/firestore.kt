@@ -32,6 +32,8 @@ actual class FirebaseFirestore(val js: firebase.firestore.Firestore) {
 
     actual fun document(documentPath: String) = rethrow { DocumentReference(js.doc(documentPath)) }
 
+    actual fun collectionGroup(collectionId: String) = rethrow { Query(js.collectionGroup(collectionId)) }
+
     actual fun batch() = rethrow { WriteBatch(js.batch()) }
 
     actual fun setLoggingEnabled(loggingEnabled: Boolean) =
@@ -350,6 +352,7 @@ actual object FieldValue {
     actual fun delete(): Any = rethrow { firebase.firestore.FieldValue.delete() }
     actual fun arrayUnion(vararg elements: Any): Any = rethrow { firebase.firestore.FieldValue.arrayUnion(*elements) }
     actual fun arrayRemove(vararg elements: Any): Any = rethrow { firebase.firestore.FieldValue.arrayRemove(*elements) }
+    actual fun serverTimestamp(): Any = rethrow { firebase.firestore.FieldValue.serverTimestamp() }
 }
 
 //actual data class FirebaseFirestoreSettings internal constructor(

@@ -35,6 +35,8 @@ actual class FirebaseFirestore(val android: com.google.firebase.firestore.Fireba
 
     actual fun document(documentPath: String) = DocumentReference(android.document(documentPath))
 
+    actual fun collectionGroup(collectionId: String) = Query(android.collectionGroup(collectionId))
+
     actual fun batch() = WriteBatch(android.batch())
 
     actual fun setLoggingEnabled(loggingEnabled: Boolean) =
@@ -368,5 +370,6 @@ actual object FieldValue {
     actual fun delete(): Any = com.google.firebase.firestore.FieldValue.delete()
     actual fun arrayUnion(vararg elements: Any): Any = com.google.firebase.firestore.FieldValue.arrayUnion(*elements)
     actual fun arrayRemove(vararg elements: Any): Any = com.google.firebase.firestore.FieldValue.arrayRemove(*elements)
+    actual fun serverTimestamp(): Any = com.google.firebase.firestore.FieldValue.serverTimestamp()
 }
 

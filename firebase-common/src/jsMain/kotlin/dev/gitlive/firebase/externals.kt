@@ -176,6 +176,7 @@ external object firebase {
             fun <T> runTransaction(func: (transaction: Transaction) -> Promise<T>): Promise<T>
             fun batch(): WriteBatch
             fun collection(collectionPath: String): CollectionReference
+            fun collectionGroup(collectionId: String): Query
             fun doc(documentPath: String): DocumentReference
             fun settings(settings: Json)
             fun enablePersistence(): Promise<Unit>
@@ -237,11 +238,20 @@ external object firebase {
             fun delete(documentReference: DocumentReference): Transaction
         }
 
+        open class Timestamp(seconds: Long, nanoseconds: Int) {
+            companion object {
+                fun now(): Timestamp
+            }
+            val seconds: Long
+            val nanoseconds: Int
+        }
+
         abstract class FieldValue {
             companion object {
                 fun delete(): FieldValue
                 fun arrayRemove(vararg elements: Any): FieldValue
                 fun arrayUnion(vararg elements: Any): FieldValue
+                fun serverTimestamp(): FieldValue
             }
         }
     }
