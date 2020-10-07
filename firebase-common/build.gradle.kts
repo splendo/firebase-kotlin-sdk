@@ -2,7 +2,7 @@
  * Copyright (c) 2020 GitLive Ltd.  Use of this source code is governed by the Apache 2.0 license.
  */
 
-version = "0.2.0"
+version = project.property("firebase-common.version") as String
 
 plugins {
     id("com.android.library")
@@ -69,7 +69,7 @@ kotlin {
         }
         val androidMain by getting {
             dependencies {
-                api("com.google.firebase:firebase-common:19.2.0")
+                api("com.google.firebase:firebase-common:19.3.0")
                 api("org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0")
             }
         }

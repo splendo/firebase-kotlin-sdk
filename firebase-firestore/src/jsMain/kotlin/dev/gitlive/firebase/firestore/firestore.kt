@@ -342,8 +342,9 @@ actual class DocumentSnapshot(val js: firebase.firestore.DocumentSnapshot) {
 
 actual typealias FieldPath = Any
 
-actual fun FieldPath(vararg fieldNames: String): FieldPath = rethrow { firebase.firestore.FieldPath(fieldNames) }
-
+actual fun FieldPath(vararg fieldNames: String): FieldPath = rethrow {
+    js("Reflect").construct(firebase.firestore.asDynamic().FieldPath, fieldNames).unsafeCast<FieldPath>()
+}
 
 actual object FieldValue {
     actual fun delete(): Any = rethrow { firebase.firestore.FieldValue.delete() }
@@ -386,12 +387,12 @@ inline fun <R> rethrow(function: () -> R): R {
         return function()
     } catch (e: Exception) {
         throw e
-    } catch(e: Throwable) {
+    } catch(e: dynamic) {
         throw errorToException(e)
     }
 }
 
-fun errorToException(e: Throwable) = when(e.asDynamic().code as String?) {
+fun errorToException(e: dynamic) = when(e?.code?.toLowerCase()) {
     "cancelled" -> FirebaseFirestoreException(e, FirestoreExceptionCode.CANCELLED)
     "invalid-argument" -> FirebaseFirestoreException(e, FirestoreExceptionCode.INVALID_ARGUMENT)
     "deadline-exceeded" -> FirebaseFirestoreException(e, FirestoreExceptionCode.DEADLINE_EXCEEDED)
