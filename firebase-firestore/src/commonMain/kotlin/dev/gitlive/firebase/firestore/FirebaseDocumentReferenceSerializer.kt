@@ -10,10 +10,10 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 expect class FirebaseDocumentReferenceEncoder() {
-    fun encode(value: DocumentReference): Any
+    fun encode(value: DocumentReferenceWrapper): Any
 }
 
-class FirebaseDocumentReferenceSerializer : KSerializer<DocumentReference> {
+class FirebaseDocumentReferenceSerializer : KSerializer<DocumentReferenceWrapper> {
 
     override val descriptor = object : SerialDescriptor {
         val keys = listOf("path")
@@ -27,17 +27,17 @@ class FirebaseDocumentReferenceSerializer : KSerializer<DocumentReference> {
         override fun isElementOptional(index: Int) = false
     }
 
-    override fun serialize(encoder: Encoder, value: DocumentReference) {
+    override fun serialize(encoder: Encoder, value: DocumentReferenceWrapper) {
         val objectEncoder = encoder.beginStructure(descriptor) as FirebaseCompositeEncoder
         val documentReferenceEncoder = FirebaseDocumentReferenceEncoder()
         objectEncoder.encodeObject(descriptor, 0, documentReferenceEncoder.encode(value))
         objectEncoder.endStructure(descriptor)
     }
 
-    override fun deserialize(decoder: Decoder): DocumentReference {
+    override fun deserialize(decoder: Decoder): DocumentReferenceWrapper {
         val objectDecoder = decoder.beginStructure(descriptor) as FirebaseCompositeDecoder
         val path = objectDecoder.decodeStringElement(descriptor, 0)
         objectDecoder.endStructure(descriptor)
-        return Firebase.firestore.document(path)
+        return Firebase.firestore.document(path) as DocumentReferenceWrapper
     }
 }
