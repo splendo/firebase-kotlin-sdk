@@ -1,42 +1,31 @@
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
-    kotlin("multiplatform") version "1.5.21" apply false
     kotlin("plugin.serialization") version "1.5.21" apply false
+    kotlin("multiplatform") version "1.5.31" apply false
     id("base")
 }
 
 buildscript {
     repositories {
         google()
+        mavenCentral()
         gradlePluginPortal()
         maven {
             url = uri("https://plugins.gradle.org/m2/")
         }
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:4.0.2")
+        classpath("com.android.tools.build:gradle:7.0.3")
         classpath("com.adarshr:gradle-test-logger-plugin:2.1.1")
     }
 }
 
 val targetSdkVersion by extra(30)
-val minSdkVersion by extra(16)
-val firebaseBoMVersion by extra("27.1.0")
-
 val cinteropDir: String by extra("src/nativeInterop/cinterop")
-
-// TODO: Hierarchical project structures are not fully supported in IDEA, enable only for a regular built (https://youtrack.jetbrains.com/issue/KT-35011)
-// add idea.active=true for local development
-val _ideaActive = gradleLocalProperties(rootDir)["idea.active"] == "true"
-
-//if (!_ideaActive) {
-//    ext["kotlin.mpp.enableGranularSourceSetsMetadata"] = "true"
-//    ext["kotlin.native.enableDependencyPropagation"] = "false"
-//}
+val minSdkVersion by extra(19)
 
 tasks {
     val updateVersions by registering {
@@ -46,27 +35,36 @@ tasks {
             "firebase-common:updateVersion", "firebase-common:updateDependencyVersion",
             "firebase-database:updateVersion", "firebase-database:updateDependencyVersion",
             "firebase-firestore:updateVersion", "firebase-firestore:updateDependencyVersion",
-            "firebase-functions:updateVersion", "firebase-functions:updateDependencyVersion"
+            "firebase-functions:updateVersion", "firebase-functions:updateDependencyVersion",
+            "firebase-config:updateVersion", "firebase-config:updateDependencyVersion"
         )
     }
 }
 
 subprojects {
 
-    val ideaActive by extra(_ideaActive)
-
     group = "dev.gitlive"
 
     apply(plugin="com.adarshr.test-logger")
-    
+
     repositories {
         mavenLocal()
-        mavenCentral()
         google()
+        mavenCentral()
     }
 
     tasks.withType<Sign>().configureEach {
         onlyIf { !project.gradle.startParameter.taskNames.contains("publishToMavenLocal") }
+    }
+
+    tasks.whenTaskAdded {
+        enabled = when(name) {
+            "compileDebugUnitTestKotlinAndroid" -> false
+            "compileReleaseUnitTestKotlinAndroid" -> false
+            "testDebugUnitTest" -> false
+            "testReleaseUnitTest" -> false
+            else -> enabled
+        }
     }
 
     tasks {
@@ -201,16 +199,15 @@ subprojects {
         val coroutinesVersion: String by project
 
         dependencies {
-            "commonMainImplementation"(kotlin("stdlib-common"))
-            "commonMainImplementation"("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-            "jsMainImplementation"(kotlin("stdlib-js"))
-            "androidMainImplementation"("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:$coroutinesVersion")
+            "commonMainImplementation"("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
+            "androidMainImplementation"("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.5.2")
+            "androidMainImplementation"(platform("com.google.firebase:firebase-bom:29.0.0"))
             "commonTestImplementation"(kotlin("test-common"))
             "commonTestImplementation"(kotlin("test-annotations-common"))
-            "commonTestImplementation"("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+            "commonTestImplementation"("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
             "jsTestImplementation"(kotlin("test-js"))
             "androidAndroidTestImplementation"(kotlin("test-junit"))
-            "androidAndroidTestImplementation"("junit:junit:4.13.1")
+            "androidAndroidTestImplementation"("junit:junit:4.13.2")
             "androidAndroidTestImplementation"("androidx.test:core:1.4.0")
             "androidAndroidTestImplementation"("androidx.test.ext:junit:1.1.3")
             "androidAndroidTestImplementation"("androidx.test:runner:1.4.0")
@@ -219,7 +216,6 @@ subprojects {
 
     apply(plugin="maven-publish")
     apply(plugin="signing")
-
 
     configure<PublishingExtension> {
 

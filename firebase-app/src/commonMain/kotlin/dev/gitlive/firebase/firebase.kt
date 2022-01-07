@@ -47,22 +47,14 @@ val Firebase.options: FirebaseOptions
     get() = Firebase.app.options
 
 expect class FirebaseOptions(
-    applicationId: String,
-    apiKey: String,
-    databaseUrl: String? = null,
-    gaTrackingId: String? = null,
-    storageBucket: String? = null,
-    projectId: String? = null,
-    gcmSenderId: String? = null
+    val applicationId: String,
+    val apiKey: String,
+    val databaseUrl: String? = null,
+    val gaTrackingId: String? = null,
+    val storageBucket: String? = null,
+    val projectId: String? = null,
+    val gcmSenderId: String? = null
 ) {
-    val applicationId: String
-    val apiKey: String
-    val databaseUrl: String?
-    val gaTrackingId: String?
-    val storageBucket: String?
-    val projectId: String?
-    val gcmSenderId: String?
-
     companion object {
         fun withContext(context: Any): FirebaseOptions?
     }

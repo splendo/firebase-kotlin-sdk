@@ -4,13 +4,29 @@
 
 package dev.gitlive.firebase.firestore
 
-import dev.gitlive.firebase.*
-import kotlinx.serialization.*
-import kotlin.test.*
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.FirebaseOptions
+import dev.gitlive.firebase.apps
+import dev.gitlive.firebase.initialize
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.Serializable
+import kotlin.random.Random
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 expect val emulatorHost: String
 expect val context: Any
-expect fun runTest(test: suspend () -> Unit)
+expect fun runTest(test: suspend CoroutineScope.() -> Unit)
 
 class FirebaseFirestoreTest {
 
@@ -29,7 +45,8 @@ class FirebaseFirestoreTest {
                         apiKey = "AIzaSyCK87dcMFhzCz_kJVs2cT2AVlqOTLuyWV0",
                         databaseUrl = "https://fir-kotlin-sdk.firebaseio.com",
                         storageBucket = "fir-kotlin-sdk.appspot.com",
-                        projectId = "fir-kotlin-sdk"
+                        projectId = "fir-kotlin-sdk",
+                        gcmSenderId = "846484016111"
                     )
                 )
                 Firebase.firestore.useEmulator(emulatorHost, 8080)
@@ -39,13 +56,15 @@ class FirebaseFirestoreTest {
     @Test
     fun testStringOrderBy() = runTest {
         setupFirestoreData()
-
-        val resultDocs = Firebase.firestore.collection("FirebaseFirestoreTest")
-            .orderBy("prop1").get().documentChanges
+        val resultDocs = Firebase.firestore
+            .collection("FirebaseFirestoreTest")
+            .orderBy("prop1")
+            .get()
+            .documents
         assertEquals(3, resultDocs.size)
-        assertEquals("aaa", resultDocs[0].document.get("prop1"))
-        assertEquals("bbb", resultDocs[1].document.get("prop1"))
-        assertEquals("ccc", resultDocs[2].document.get("prop1"))
+        assertEquals("aaa", resultDocs[0].get("prop1"))
+        assertEquals("bbb", resultDocs[1].get("prop1"))
+        assertEquals("ccc", resultDocs[2].get("prop1"))
     }
 
     @Test
@@ -118,7 +137,92 @@ class FirebaseFirestoreTest {
 
         assertNotEquals(FieldValue.serverTimestamp(), doc.get().get("time"))
         assertNotEquals(FieldValue.serverTimestamp(), doc.get().data(FirestoreTest.serializer()).time)
+    }
 
+    @Test
+    fun testServerTimestampBehaviorNone() = runTest {
+        val doc = Firebase.firestore
+            .collection("testServerTimestampBehaviorNone")
+            .document("test${Random.nextInt()}")
+
+        val deferredPendingWritesSnapshot = async {
+            withTimeout(5000) {
+                doc.snapshots.filter { it.exists }.first()
+            }
+        }
+        delay(100) // makes possible to catch pending writes snapshot
+
+        doc.set(
+            FirestoreTest.serializer(),
+            FirestoreTest("ServerTimestampBehavior", FieldValue.serverTimestamp)
+        )
+
+        val pendingWritesSnapshot = deferredPendingWritesSnapshot.await()
+        assertTrue(pendingWritesSnapshot.metadata.hasPendingWrites)
+        assertNull(pendingWritesSnapshot.get<Double?>("time", ServerTimestampBehavior.NONE))
+    }
+
+    @Test
+    fun testServerTimestampBehaviorEstimate() = runTest {
+        val doc = Firebase.firestore
+            .collection("testServerTimestampBehaviorEstimate")
+            .document("test${Random.nextInt()}")
+
+        val deferredPendingWritesSnapshot = async {
+            withTimeout(5000) {
+                doc.snapshots.filter { it.exists }.first()
+            }
+        }
+        delay(100) // makes possible to catch pending writes snapshot
+
+        doc.set(FirestoreTest.serializer(), FirestoreTest("ServerTimestampBehavior", FieldValue.serverTimestamp))
+
+        val pendingWritesSnapshot = deferredPendingWritesSnapshot.await()
+        assertTrue(pendingWritesSnapshot.metadata.hasPendingWrites)
+        assertNotNull(pendingWritesSnapshot.get<Double?>("time", ServerTimestampBehavior.ESTIMATE))
+        assertNotEquals(0.0, pendingWritesSnapshot.data(FirestoreTest.serializer(), ServerTimestampBehavior.ESTIMATE).time)
+    }
+
+    @Test
+    fun testServerTimestampBehaviorPrevious() = runTest {
+        val doc = Firebase.firestore
+            .collection("testServerTimestampBehaviorPrevious")
+            .document("test${Random.nextInt()}")
+
+        val deferredPendingWritesSnapshot = async {
+            withTimeout(5000) {
+                doc.snapshots.filter { it.exists }.first()
+            }
+        }
+        delay(100) // makes possible to catch pending writes snapshot
+
+        doc.set(FirestoreTest.serializer(), FirestoreTest("ServerTimestampBehavior", FieldValue.serverTimestamp))
+
+        val pendingWritesSnapshot = deferredPendingWritesSnapshot.await()
+        assertTrue(pendingWritesSnapshot.metadata.hasPendingWrites)
+        assertNull(pendingWritesSnapshot.get<Double?>("time", ServerTimestampBehavior.PREVIOUS))
+    }
+
+    @Test
+    fun testDocumentAutoId() = runTest {
+        val doc = Firebase.firestore
+            .collection("testDocumentAutoId")
+            .document
+
+        doc.set(FirestoreTest.serializer(), FirestoreTest("AutoId"))
+
+        val resultDoc = Firebase.firestore
+            .collection("testDocumentAutoId")
+            .document(doc.id)
+            .get()
+
+        assertEquals(true, resultDoc.exists)
+        assertEquals("AutoId", resultDoc.get("prop1"))
+    }
+
+    @Test
+    fun testDefaultOptions() = runTest {
+        assertNull(FirebaseOptions.withContext(1))
     }
 
     private suspend fun setupFirestoreData() {
@@ -131,10 +235,5 @@ class FirebaseFirestoreTest {
         Firebase.firestore.collection("FirebaseFirestoreTest")
             .document("three")
             .set(FirestoreTest.serializer(), FirestoreTest("ccc"))
-    }
-
-    @Test
-    fun testDefaultOptions() = runTest {
-        assertNull(FirebaseOptions.withContext(1))
     }
 }
