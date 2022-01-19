@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationStrategy
 import kotlin.js.JsName
+import kotlin.jvm.JvmName
 
 /** Returns the [FirebaseFirestore] instance of the default [FirebaseApp]. */
 expect val Firebase.firestore: FirebaseFirestore
@@ -18,7 +19,7 @@ expect val Firebase.firestore: FirebaseFirestore
 /** Returns the [FirebaseFirestore] instance of a given [FirebaseApp]. */
 expect fun Firebase.firestore(app: FirebaseApp): FirebaseFirestore
 
-expect class FirebaseFirestore {
+interface IFirebaseFirestore {
     fun collection(collectionPath: String): CollectionReference
     fun document(documentPath: String): DocumentReference
     fun collectionGroup(collectionId: String): Query
@@ -31,6 +32,8 @@ expect class FirebaseFirestore {
     suspend fun disableNetwork()
     suspend fun enableNetwork()
 }
+
+expect class FirebaseFirestore : IFirebaseFirestore
 
 expect class Transaction {
 
@@ -116,8 +119,7 @@ expect class WriteBatch {
     suspend fun commit()
 }
 
-expect class DocumentReference {
-
+interface DocumentReference {
     val id: String
     val path: String
     val snapshots: Flow<DocumentSnapshot>
@@ -125,32 +127,46 @@ expect class DocumentReference {
     fun collection(collectionPath: String): CollectionReference
     suspend fun get(): DocumentSnapshot
 
-    suspend inline fun <reified T> set(data: T, encodeDefaults: Boolean = true, merge: Boolean = false)
-    suspend inline fun <reified T> set(data: T, encodeDefaults: Boolean = true, vararg mergeFields: String)
-    suspend inline fun <reified T> set(data: T, encodeDefaults: Boolean = true, vararg mergeFieldPaths: FieldPath)
 
     suspend fun <T> set(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true, merge: Boolean = false)
     suspend fun <T> set(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true, vararg mergeFields: String)
     suspend fun <T> set(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true, vararg mergeFieldPaths: FieldPath)
 
-    suspend inline fun <reified T> update(data: T, encodeDefaults: Boolean = true)
     suspend fun <T> update(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true)
 
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("updateFieldsByKey")
     suspend fun update(vararg fieldsAndValues: Pair<String, Any?>)
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("updateFieldsByFieldPath")
     suspend fun update(vararg fieldsAndValues: Pair<FieldPath, Any?>)
 
     suspend fun delete()
 }
 
-expect class CollectionReference : Query {
+expect class DocumentReferenceWrapper : DocumentReference {
+
+    suspend inline fun <reified T> set(data: T, encodeDefaults: Boolean = true, merge: Boolean = false)
+    suspend inline fun <reified T> set(data: T, encodeDefaults: Boolean = true, vararg mergeFields: String)
+    suspend inline fun <reified T> set(data: T, encodeDefaults: Boolean = true, vararg mergeFieldPaths: FieldPath)
+
+    suspend inline fun <reified T> update(data: T, encodeDefaults: Boolean = true)
+}
+
+interface CollectionReference {
     val path: String
 
     fun document(documentPath: String): DocumentReference
     fun document(): DocumentReference
-    suspend inline fun <reified T> add(data: T, encodeDefaults: Boolean = true): DocumentReference
+
     @Deprecated("This will be replaced with add(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true)")
     suspend fun <T> add(data: T, strategy: SerializationStrategy<T>, encodeDefaults: Boolean = true): DocumentReference
     suspend fun <T> add(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true): DocumentReference
+}
+
+expect class CollectionReferenceWrapper : Query, CollectionReference {
+    suspend inline fun <reified T> add(data: T, encodeDefaults: Boolean = true): DocumentReference
 }
 
 expect class FirebaseFirestoreException : FirebaseException

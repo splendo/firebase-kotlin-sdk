@@ -49,7 +49,7 @@ class FirebaseReferenceNullableSerializer : AbstractFirebaseReferenceSerializer<
         val objectDecoder = decoder.beginStructure(descriptor) as FirebaseCompositeDecoder
         return try {
             val path = objectDecoder.decodeStringElement(descriptor, 0)
-            FirebaseReference.Value(Firebase.firestore.document(path))
+            FirebaseReference.Value(Firebase.firestore.document(path) as DocumentReferenceWrapper)
         } catch (exception: Exception) {
             null
         } finally {
@@ -68,6 +68,6 @@ class FirebaseReferenceSerializer : AbstractFirebaseReferenceSerializer<Firebase
         val objectDecoder = decoder.beginStructure(descriptor) as FirebaseCompositeDecoder
         val path = objectDecoder.decodeStringElement(descriptor, 0)
         objectDecoder.endStructure(descriptor)
-        return FirebaseReference.Value(Firebase.firestore.document(path))
+        return FirebaseReference.Value(Firebase.firestore.document(path) as DocumentReferenceWrapper)
     }
 }
