@@ -4,8 +4,8 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
-    kotlin("multiplatform") version "1.5.21" apply false
-    kotlin("plugin.serialization") version "1.5.21" apply false
+    kotlin("multiplatform") version "1.5.31" apply false
+    kotlin("plugin.serialization") version "1.5.31" apply false
     id("base")
 }
 
