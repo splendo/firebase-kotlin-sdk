@@ -6,6 +6,8 @@ plugins {
     kotlin("multiplatform") version "1.5.31" apply false
     kotlin("plugin.serialization") version "1.5.31" apply false
     id("base")
+    // private gcloud maven repo plugin
+    id("com.google.cloud.artifactregistry.gradle-plugin") version "2.1.4"
 }
 
 buildscript {
@@ -20,6 +22,8 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle:7.0.3")
         classpath("com.adarshr:gradle-test-logger-plugin:2.1.1")
+        // Note: gcloud maven repo plugin expects the recent version of guava, but not declaring it as a depencency
+        classpath("com.google.guava:guava:31.0.1-jre")
     }
 }
 
@@ -43,11 +47,29 @@ tasks {
     }
 }
 
+// override release versions based on the current branch
+apply(from ="./gradle-scripts/gitBranch.gradle.kts")
+val branchPostfix = extra["branch_postfix"]
+allprojects {
+    listOf(
+        "firebase-app.version", "firebase-auth.version", "firebase-common.version",
+        "firebase-database.version", "firebase-firestore.version",
+        "firebase-functions.version", "firebase-config.version"
+    ).forEach { propertyName ->
+        val origin = project.property(propertyName) as String
+        val overridden = origin + branchPostfix
+        logger.lifecycle("Overridding version '$propertyName' $origin -> $overridden")
+        project.setProperty(propertyName, overridden)
+    }
+}
+
 subprojects {
 
     group = "dev.gitlive"
 
     apply(plugin="com.adarshr.test-logger")
+
+    apply(plugin="com.google.cloud.artifactregistry.gradle-plugin")
 
     repositories {
         mavenLocal()
@@ -56,7 +78,10 @@ subprojects {
     }
 
     tasks.withType<Sign>().configureEach {
-        onlyIf { !project.gradle.startParameter.taskNames.contains("publishToMavenLocal") }
+        onlyIf {
+            false // note - disable signing completely - neither local publishing nor gcloud maven doesn't need it
+//            !project.gradle.startParameter.taskNames.contains("publishToMavenLocal")
+        }
     }
 
     tasks.whenTaskAdded {
@@ -224,11 +249,27 @@ subprojects {
     configure<PublishingExtension> {
 
         repositories {
+//              Disable original publishing
+//            maven {
+//                url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2")
+//                credentials {
+//                    username = project.findProperty("sonatypeUsername") as String? ?: System.getenv("sonatypeUsername")
+//                    password = project.findProperty("sonatypePassword") as String? ?: System.getenv("sonatypePassword")
+//                }
+//            }
+            // publish to private maven repo
             maven {
-                url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2")
-                credentials {
-                    username = project.findProperty("sonatypeUsername") as String? ?: System.getenv("sonatypeUsername")
-                    password = project.findProperty("sonatypePassword") as String? ?: System.getenv("sonatypePassword")
+                url = uri("artifactregistry://europe-west4-maven.pkg.dev/artefact-repo/repo")
+                val artifactRegistryMavenSecret = System.getenv("PRIVATE_MAVEN_SECRET")
+                    ?: project.findProperty("artifactRegistryMavenSecret") as String?
+                artifactRegistryMavenSecret?.let {
+                    authentication {
+                        create<BasicAuthentication>("basic")
+                    }
+                    credentials {
+                        username = "_json_key_base64"
+                        password = it
+                    }
                 }
             }
         }
