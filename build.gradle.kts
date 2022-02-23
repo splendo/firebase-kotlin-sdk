@@ -266,17 +266,6 @@ subprojects {
             // publish to private maven repo
             maven {
                 url = uri("artifactregistry://europe-west4-maven.pkg.dev/artefact-repo/repo")
-                val artifactRegistryMavenSecret = System.getenv("PRIVATE_MAVEN_SECRET")
-                    ?: project.findProperty("artifactRegistryMavenSecret") as String?
-                artifactRegistryMavenSecret?.let {
-                    authentication {
-                        create<BasicAuthentication>("basic")
-                    }
-                    credentials {
-                        username = "_json_key_base64"
-                        password = it
-                    }
-                }
             }
         }
 
