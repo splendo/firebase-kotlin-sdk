@@ -6,6 +6,7 @@
 package dev.gitlive.firebase.firestore
 
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.SetOptions
 import dev.gitlive.firebase.*
 import kotlinx.coroutines.channels.awaitClose
@@ -252,6 +253,9 @@ actual class DocumentReference(val android: com.google.firebase.firestore.Docume
     actual val path: String
         get() = android.path
 
+    actual val parent: CollectionReference
+        get() = CollectionReference(android.parent)
+
     actual fun collection(collectionPath: String) = CollectionReference(android.collection(collectionPath))
 
     actual suspend inline fun <reified T> set(data: T, encodeDefaults: Boolean, merge: Boolean) = when(merge) {
@@ -320,7 +324,7 @@ actual class DocumentReference(val android: com.google.firebase.firestore.Docume
 
     actual val snapshots get() = callbackFlow<DocumentSnapshot> {
         val listener = android.addSnapshotListener { snapshot, exception ->
-            snapshot?.let { safeOffer(DocumentSnapshot(snapshot)) }
+            snapshot?.let { trySend(DocumentSnapshot(snapshot)) }
             exception?.let { close(exception) }
         }
         awaitClose { listener.remove() }
@@ -335,7 +339,16 @@ actual open class Query(open val android: com.google.firebase.firestore.Query) {
 
     actual val snapshots get() = callbackFlow<QuerySnapshot> {
         val listener = android.addSnapshotListener { snapshot, exception ->
-            snapshot?.let { safeOffer(QuerySnapshot(snapshot)) }
+            snapshot?.let { trySend(QuerySnapshot(snapshot)) }
+            exception?.let { close(exception) }
+        }
+        awaitClose { listener.remove() }
+    }
+
+    actual fun snapshots(includeMetadataChanges: Boolean) = callbackFlow<QuerySnapshot> {
+        val metadataChanges = if(includeMetadataChanges) MetadataChanges.INCLUDE else MetadataChanges.EXCLUDE
+        val listener = android.addSnapshotListener(metadataChanges) { snapshot, exception ->
+            snapshot?.let { trySend(QuerySnapshot(snapshot)) }
             exception?.let { close(exception) }
         }
         awaitClose { listener.remove() }
@@ -401,6 +414,8 @@ actual open class Query(open val android: com.google.firebase.firestore.Query) {
 
     internal actual fun _orderBy(field: String, direction: Direction) = Query(android.orderBy(field, direction))
     internal actual fun _orderBy(field: FieldPath, direction: Direction) = Query(android.orderBy(field.android, direction))
+
+    internal actual fun _startAfter(document: DocumentSnapshot) = Query(android.startAfter(document.android))
 }
 
 actual typealias Direction = com.google.firebase.firestore.Query.Direction
@@ -410,6 +425,12 @@ actual class CollectionReference(override val android: com.google.firebase.fires
 
     actual val path: String
         get() = android.path
+
+    actual val document: DocumentReference
+        get() = DocumentReference(android.document())
+
+    actual val parent: DocumentReference?
+        get() = android.parent?.let{DocumentReference(it)}
 
     actual fun document(documentPath: String) = DocumentReference(android.document(documentPath))
 
@@ -493,6 +514,7 @@ actual class FieldPath private constructor(val android: com.google.firebase.fire
 actual object FieldValue {
     actual fun serverTimestamp(): Any = FieldValue.serverTimestamp()
     actual val delete: Any get() = FieldValue.delete()
+    actual fun increment(value: Int): Any = FieldValue.increment(value.toDouble())
     actual fun arrayUnion(vararg elements: Any): Any = FieldValue.arrayUnion(*elements)
     actual fun arrayRemove(vararg elements: Any): Any = FieldValue.arrayRemove(*elements)
     actual fun delete(): Any = delete

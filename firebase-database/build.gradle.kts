@@ -6,10 +6,12 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.konan.target.KonanTarget
 
 version = project.property("firebase-database.version") as String
+val kotlinVersion: String by project
 
 plugins {
     id("com.android.library")
     kotlin("multiplatform")
+    kotlin("plugin.serialization")
 }
 
 repositories {
@@ -25,10 +27,16 @@ android {
     defaultConfig {
         minSdk = minSdkVersion
         targetSdk = targetSdkVersion
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        multiDexEnabled = true
     }
     sourceSets {
         getByName("main") {
             manifest.srcFile("src/androidMain/AndroidManifest.xml")
+        }
+        getByName("androidTest"){
+            java.srcDir(file("src/androidAndroidTest/kotlin"))
+            manifest.srcFile("src/androidAndroidTest/AndroidManifest.xml")
         }
     }
     testOptions {

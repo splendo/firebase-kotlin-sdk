@@ -202,6 +202,9 @@ actual class DocumentReference(val ios: FIRDocumentReference) {
     actual val path: String
         get() = ios.path
 
+    actual val parent: CollectionReference
+        get() = CollectionReference(ios.parent)
+
     actual fun collection(collectionPath: String) = CollectionReference(ios.collectionWithPath(collectionPath))
 
     actual suspend inline fun <reified T> set(data: T, encodeDefaults: Boolean, merge: Boolean) =
@@ -252,7 +255,7 @@ actual class DocumentReference(val ios: FIRDocumentReference) {
 
     actual val snapshots get() = callbackFlow<DocumentSnapshot> {
         val listener = ios.addSnapshotListener { snapshot, error ->
-            snapshot?.let { safeOffer(DocumentSnapshot(snapshot)) }
+            snapshot?.let { trySend(DocumentSnapshot(snapshot)) }
             error?.let { close(error.toException()) }
         }
         awaitClose { listener.remove() }
@@ -267,7 +270,15 @@ actual open class Query(open val ios: FIRQuery) {
 
     actual val snapshots get() = callbackFlow<QuerySnapshot> {
         val listener = ios.addSnapshotListener { snapshot, error ->
-            snapshot?.let { safeOffer(QuerySnapshot(snapshot)) }
+            snapshot?.let { trySend(QuerySnapshot(snapshot)) }
+            error?.let { close(error.toException()) }
+        }
+        awaitClose { listener.remove() }
+    }
+
+    actual fun snapshots(includeMetadataChanges: Boolean) = callbackFlow<QuerySnapshot> {
+        val listener = ios.addSnapshotListenerWithIncludeMetadataChanges(includeMetadataChanges) { snapshot, error ->
+            snapshot?.let { trySend(QuerySnapshot(snapshot)) }
             error?.let { close(error.toException()) }
         }
         awaitClose { listener.remove() }
@@ -333,6 +344,9 @@ actual open class Query(open val ios: FIRQuery) {
 
     internal actual fun _orderBy(field: String, direction: Direction) = Query(ios.queryOrderedByField(field, direction == Direction.DESCENDING))
     internal actual fun _orderBy(field: FieldPath, direction: Direction) = Query(ios.queryOrderedByFieldPath(field.ios, direction == Direction.DESCENDING))
+
+    internal actual fun _startAfter(document: DocumentSnapshot) = Query(ios.queryStartingAfterDocument(document.ios))
+
 }
 
 @Suppress("UNCHECKED_CAST")
@@ -340,6 +354,10 @@ actual class CollectionReference(override val ios: FIRCollectionReference) : Que
 
     actual val path: String
         get() = ios.path
+
+    actual val document get() = DocumentReference(ios.documentWithAutoID())
+
+    actual val parent get() = ios.parent?.let{DocumentReference(it)}
 
     actual fun document(documentPath: String) = DocumentReference(ios.documentWithPath(documentPath))
 
@@ -484,6 +502,7 @@ actual class FieldPath private constructor(val ios: FIRFieldPath) {
 
 actual object FieldValue {
     actual val delete: Any get() = FIRFieldValue.fieldValueForDelete()
+    actual fun increment(value: Int): Any = FIRFieldValue.fieldValueForIntegerIncrement(value.toLong())
     actual fun arrayUnion(vararg elements: Any): Any = FIRFieldValue.fieldValueForArrayUnion(elements.asList())
     actual fun arrayRemove(vararg elements: Any): Any = FIRFieldValue.fieldValueForArrayUnion(elements.asList())
     actual fun serverTimestamp(): Any = FIRFieldValue.fieldValueForServerTimestamp()

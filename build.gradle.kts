@@ -41,10 +41,11 @@ tasks {
             "firebase-app:updateVersion", "firebase-app:updateDependencyVersion",
             "firebase-auth:updateVersion", "firebase-auth:updateDependencyVersion",
             "firebase-common:updateVersion", "firebase-common:updateDependencyVersion",
+            "firebase-config:updateVersion", "firebase-config:updateDependencyVersion",
             "firebase-database:updateVersion", "firebase-database:updateDependencyVersion",
             "firebase-firestore:updateVersion", "firebase-firestore:updateDependencyVersion",
             "firebase-functions:updateVersion", "firebase-functions:updateDependencyVersion",
-            "firebase-config:updateVersion", "firebase-config:updateDependencyVersion"
+            "firebase-installations:updateVersion", "firebase-installations:updateDependencyVersion"
         )
     }
 }
@@ -164,8 +165,8 @@ subprojects {
             }
         }
 
-        if (projectDir.resolve("$cinteropDir/Cartfile").exists()) { // skipping firebase-common module
-            listOf("bootstrap", "update").forEach {
+        val carthageTasks = if (projectDir.resolve("$cinteropDir/Cartfile").exists()) { // skipping firebase-common module
+            listOf("bootstrap", "update").map {
                 task<Exec>("carthage${it.capitalize()}") {
                     group = "carthage"
                     executable = "carthage"
@@ -177,11 +178,13 @@ subprojects {
                     )
                 }
             }
-        }
+        } else emptyList()
 
         if (Os.isFamily(Os.FAMILY_MAC)) {
             withType(org.jetbrains.kotlin.gradle.tasks.CInteropProcess::class) {
-                dependsOn("carthageBootstrap")
+                if (carthageTasks.isNotEmpty()) {
+                    dependsOn("carthageBootstrap")
+                }
             }
         }
 
@@ -194,7 +197,7 @@ subprojects {
         }
     }
 
-    afterEvaluate  {
+    afterEvaluate {
         // create the projects node_modules if they don't exist
         if(!File("$buildDir/node_module").exists()) {
             mkdir("$buildDir/node_module")
@@ -211,6 +214,7 @@ subprojects {
             "commonMainImplementation"("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
             "jsMainImplementation"(kotlin("stdlib-js"))
             "androidMainImplementation"("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:$coroutinesVersion")
+            "androidMainImplementation"(platform("com.google.firebase:firebase-bom:$firebaseBoMVersion"))
             "commonTestImplementation"(kotlin("test-common"))
             "commonTestImplementation"(kotlin("test-annotations-common"))
             "commonTestImplementation"("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")

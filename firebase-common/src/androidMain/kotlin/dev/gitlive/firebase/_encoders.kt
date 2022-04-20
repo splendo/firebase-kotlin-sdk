@@ -5,12 +5,11 @@
 package dev.gitlive.firebase
 
 import kotlinx.serialization.descriptors.PolymorphicKind
-import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
 import kotlin.collections.set
 
-actual fun FirebaseEncoder.structureEncoder(descriptor: SerialDescriptor): CompositeEncoder = when(descriptor.kind) {
+actual fun FirebaseEncoder.structureEncoder(descriptor: SerialDescriptor): FirebaseCompositeEncoder = when(descriptor.kind) {
     StructureKind.LIST, is PolymorphicKind -> mutableListOf<Any?>()
         .also { value = it }
         .let { FirebaseCompositeEncoder(shouldEncodeElementDefault, positiveInfinity) { _, index, value -> it.add(index, value) } }
@@ -18,7 +17,12 @@ actual fun FirebaseEncoder.structureEncoder(descriptor: SerialDescriptor): Compo
         .let { FirebaseCompositeEncoder(shouldEncodeElementDefault, positiveInfinity, { value = it.chunked(2).associate { (k, v) -> k to v } }) { _, _, value -> it.add(value) } }
     StructureKind.CLASS -> mutableMapOf<Any?, Any?>()
         .also { value = it }
-        .let { FirebaseCompositeEncoder(shouldEncodeElementDefault, positiveInfinity) { _, index, value -> it[descriptor.getElementName(index)] = value } }
+        .let { FirebaseCompositeEncoder(shouldEncodeElementDefault, positiveInfinity,
+            setPolymorphicType = { discriminator, type ->
+                it[discriminator] = type
+            },
+            set = { _, index, value -> it[descriptor.getElementName(index)] = value }
+        ) }
     StructureKind.OBJECT -> FirebaseCompositeEncoder(shouldEncodeElementDefault, positiveInfinity) { _, _, obj -> value = obj }
-    else -> TODO("Not implemented ${descriptor.kind}")
+    else -> TODO("The firebase-kotlin-sdk does not support $descriptor for serialization yet")
 }

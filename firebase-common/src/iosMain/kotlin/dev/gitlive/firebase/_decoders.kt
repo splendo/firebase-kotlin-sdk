@@ -11,7 +11,7 @@ import kotlinx.serialization.descriptors.StructureKind
 import platform.Foundation.*
 import platform.darwin.NSObject
 
-actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor): CompositeDecoder = when(descriptor.kind) {
+actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor, decodeDouble: (value: Any?) -> Double?): CompositeDecoder = when(descriptor.kind) {
     StructureKind.CLASS, StructureKind.OBJECT -> when {
         value is Map<*, *> ->
             FirebaseClassDecoder(value.size, { value.containsKey(it) }) { desc, index ->
@@ -34,7 +34,7 @@ actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor): Compo
     StructureKind.MAP -> (value as Map<*, *>).entries.toList().let {
         FirebaseCompositeDecoder(it.size) { _, index -> it[index/2].run { if(index % 2 == 0) key else value }  }
     }
-    else -> TODO("Not implemented ${descriptor.kind}")
+    else -> TODO("The firebase-kotlin-sdk does not support $descriptor for serialization yet")
 }
 
 private val timestampKeys = setOf("seconds", "nanoseconds")
@@ -60,3 +60,7 @@ private fun makeFIRDocumentReferenceDecoder(objcObj: NSObject) = FirebaseClassDe
 ) { descriptor, index ->
     objcObj.valueForKeyPath(descriptor.getElementName(index))
 }
+
+actual fun getPolymorphicType(value: Any?, discriminator: String): String =
+    (value as Map<*,*>)[discriminator] as String
+

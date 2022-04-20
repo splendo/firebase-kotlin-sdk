@@ -9,40 +9,41 @@ import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
 
-actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor): CompositeDecoder = when(descriptor.kind) {
-    StructureKind.CLASS, StructureKind.OBJECT -> when {
+actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor, decodeDouble: (value: Any?) -> Double?): CompositeDecoder = when(descriptor.kind) {
+    StructureKind.CLASS, StructureKind.OBJECT, PolymorphicKind.SEALED -> when {
         value is Map<*, *> ->
-            FirebaseClassDecoder(value.size, { value.containsKey(it) }) { desc, index ->
+            FirebaseClassDecoder(decodeDouble, value.size, { value.containsKey(it) }) { desc, index ->
                 value[desc.getElementName(index)]
             }
         value != null && value::class.qualifiedName == "com.google.firebase.Timestamp" -> {
-            makeTimestampJavaReflectionDecoder(value)
+            makeTimestampJavaReflectionDecoder(decodeDouble, value)
         }
         value != null && value::class.qualifiedName == "com.google.firebase.firestore.GeoPoint" -> {
-            makeGeoPointJavaReflectionDecoder(value)
+            makeGeoPointJavaReflectionDecoder(decodeDouble, value)
         }
         value != null && value::class.qualifiedName == "com.google.firebase.firestore.DocumentReference" -> {
-            makeDocumentReferenceJavaReflectionDecoder(value)
+            makeDocumentReferenceJavaReflectionDecoder(decodeDouble, value)
         }
         else -> FirebaseEmptyCompositeDecoder()
     }
     StructureKind.LIST, is PolymorphicKind -> (value as List<*>).let {
-        FirebaseCompositeDecoder(it.size) { _, index -> it[index] }
+        FirebaseCompositeDecoder(decodeDouble, it.size) { _, index -> it[index] }
     }
     StructureKind.MAP -> (value as Map<*, *>).entries.toList().let {
-        FirebaseCompositeDecoder(it.size) { _, index -> it[index / 2].run { if (index % 2 == 0) key else value } }
+        FirebaseCompositeDecoder(decodeDouble, it.size) { _, index -> it[index / 2].run { if (index % 2 == 0) key else value } }
     }
-    else -> TODO("Not implemented ${descriptor.kind}")
+    else -> TODO("The firebase-kotlin-sdk does not support $descriptor for serialization yet")
 }
 
 private val timestampKeys = setOf("seconds", "nanoseconds")
 
-private fun makeTimestampJavaReflectionDecoder(jvmObj: Any): CompositeDecoder {
+private fun makeTimestampJavaReflectionDecoder(decodeDouble: (value: Any?) -> Double?, jvmObj: Any): CompositeDecoder {
     val timestampClass = Class.forName("com.google.firebase.Timestamp")
     val getSeconds = timestampClass.getMethod("getSeconds")
     val getNanoseconds = timestampClass.getMethod("getNanoseconds")
 
     return FirebaseClassDecoder(
+        decodeDouble,
         size = 2,
         containsKey = { timestampKeys.contains(it) }
     ) { descriptor, index ->
@@ -56,12 +57,13 @@ private fun makeTimestampJavaReflectionDecoder(jvmObj: Any): CompositeDecoder {
 
 private val geoPointKeys = setOf("latitude", "longitude")
 
-private fun makeGeoPointJavaReflectionDecoder(jvmObj: Any): CompositeDecoder {
+private fun makeGeoPointJavaReflectionDecoder(decodeDouble: (value: Any?) -> Double?, jvmObj: Any): CompositeDecoder {
     val timestampClass = Class.forName("com.google.firebase.firestore.GeoPoint")
     val getLatitude = timestampClass.getMethod("getLatitude")
     val getLongitude = timestampClass.getMethod("getLongitude")
 
     return FirebaseClassDecoder(
+        decodeDouble,
         size = 2,
         containsKey = { geoPointKeys.contains(it) }
     ) { descriptor, index ->
@@ -75,11 +77,12 @@ private fun makeGeoPointJavaReflectionDecoder(jvmObj: Any): CompositeDecoder {
 
 private val documentKeys = setOf("path")
 
-private fun makeDocumentReferenceJavaReflectionDecoder(jvmObj: Any): CompositeDecoder {
+private fun makeDocumentReferenceJavaReflectionDecoder(decodeDouble: (value: Any?) -> Double?, jvmObj: Any): CompositeDecoder {
     val timestampClass = Class.forName("com.google.firebase.firestore.DocumentReference")
     val getPath = timestampClass.getMethod("getPath")
 
     return FirebaseClassDecoder(
+        decodeDouble,
         size = 1,
         containsKey = { documentKeys.contains(it) }
     ) { descriptor, index ->
@@ -89,3 +92,6 @@ private fun makeDocumentReferenceJavaReflectionDecoder(jvmObj: Any): CompositeDe
         }
     }
 }
+
+actual fun getPolymorphicType(value: Any?, discriminator: String): String =
+    (value as Map<*,*>)[discriminator] as String
