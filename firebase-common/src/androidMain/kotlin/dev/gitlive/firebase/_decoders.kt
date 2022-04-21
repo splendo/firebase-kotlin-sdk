@@ -9,20 +9,20 @@ import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
 
-actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor, decodeDouble: (value: Any?) -> Double?): CompositeDecoder = when(descriptor.kind) {
+actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor, decodeDouble: DecodeDouble): CompositeDecoder = when(descriptor.kind) {
     StructureKind.CLASS, StructureKind.OBJECT, PolymorphicKind.SEALED -> when {
         value is Map<*, *> ->
             FirebaseClassDecoder(decodeDouble, value.size, { value.containsKey(it) }) { desc, index ->
                 value[desc.getElementName(index)]
             }
         value != null && value::class.qualifiedName == "com.google.firebase.Timestamp" -> {
-            makeTimestampJavaReflectionDecoder(decodeDouble, value)
+            makeTimestampJavaReflectionDecoder(value, decodeDouble)
         }
         value != null && value::class.qualifiedName == "com.google.firebase.firestore.GeoPoint" -> {
-            makeGeoPointJavaReflectionDecoder(decodeDouble, value)
+            makeGeoPointJavaReflectionDecoder(value, decodeDouble)
         }
         value != null && value::class.qualifiedName == "com.google.firebase.firestore.DocumentReference" -> {
-            makeDocumentReferenceJavaReflectionDecoder(decodeDouble, value)
+            makeDocumentReferenceJavaReflectionDecoder(value, decodeDouble)
         }
         else -> FirebaseEmptyCompositeDecoder()
     }
@@ -37,7 +37,7 @@ actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor, decode
 
 private val timestampKeys = setOf("seconds", "nanoseconds")
 
-private fun makeTimestampJavaReflectionDecoder(decodeDouble: (value: Any?) -> Double?, jvmObj: Any): CompositeDecoder {
+private fun makeTimestampJavaReflectionDecoder(jvmObj: Any, decodeDouble: DecodeDouble): CompositeDecoder {
     val timestampClass = Class.forName("com.google.firebase.Timestamp")
     val getSeconds = timestampClass.getMethod("getSeconds")
     val getNanoseconds = timestampClass.getMethod("getNanoseconds")
@@ -57,7 +57,7 @@ private fun makeTimestampJavaReflectionDecoder(decodeDouble: (value: Any?) -> Do
 
 private val geoPointKeys = setOf("latitude", "longitude")
 
-private fun makeGeoPointJavaReflectionDecoder(decodeDouble: (value: Any?) -> Double?, jvmObj: Any): CompositeDecoder {
+private fun makeGeoPointJavaReflectionDecoder(jvmObj: Any, decodeDouble: DecodeDouble): CompositeDecoder {
     val timestampClass = Class.forName("com.google.firebase.firestore.GeoPoint")
     val getLatitude = timestampClass.getMethod("getLatitude")
     val getLongitude = timestampClass.getMethod("getLongitude")
@@ -77,7 +77,7 @@ private fun makeGeoPointJavaReflectionDecoder(decodeDouble: (value: Any?) -> Dou
 
 private val documentKeys = setOf("path")
 
-private fun makeDocumentReferenceJavaReflectionDecoder(decodeDouble: (value: Any?) -> Double?, jvmObj: Any): CompositeDecoder {
+private fun makeDocumentReferenceJavaReflectionDecoder(jvmObj: Any, decodeDouble: DecodeDouble): CompositeDecoder {
     val timestampClass = Class.forName("com.google.firebase.firestore.DocumentReference")
     val getPath = timestampClass.getMethod("getPath")
 

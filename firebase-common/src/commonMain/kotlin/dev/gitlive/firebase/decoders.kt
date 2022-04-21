@@ -15,21 +15,24 @@ import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 
+typealias DecodeDouble = (value: Any?) -> Double?
+val DefaultDecodeDouble: (value: Any?) -> Double = ::decodeDouble
+
 @Suppress("UNCHECKED_CAST")
-inline fun <reified T> decode(value: Any?, noinline decodeDouble: (value: Any?) -> Double? = { null }): T {
+inline fun <reified T> decode(value: Any?, noinline decodeDouble: DecodeDouble = DefaultDecodeDouble): T {
     val strategy = serializer<T>()
     return decode(strategy as DeserializationStrategy<T>, value, decodeDouble)
 }
 
-fun <T> decode(strategy: DeserializationStrategy<T>, value: Any?, decodeDouble: (value: Any?) -> Double? = { null }): T {
+fun <T> decode(strategy: DeserializationStrategy<T>, value: Any?, decodeDouble: DecodeDouble = DefaultDecodeDouble): T {
     require(value != null || strategy.descriptor.isNullable) { "Value was null for non-nullable type ${strategy.descriptor.serialName}" }
     return FirebaseDecoder(value, decodeDouble).decodeSerializableValue(strategy)
 }
 
-expect fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor, decodeDouble: (value: Any?) -> Double?): CompositeDecoder
+expect fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor, decodeDouble: DecodeDouble): CompositeDecoder
 expect fun getPolymorphicType(value: Any?, discriminator: String): String // FIXME platform implementations are not correct
 
-class FirebaseDecoder(internal val value: Any?, private val decodeDouble: (value: Any?) -> Double?) : Decoder {
+class FirebaseDecoder(internal val value: Any?, private val decodeDouble: DecodeDouble) : Decoder {
 
     override val serializersModule: SerializersModule
         get() = EmptySerializersModule
@@ -37,8 +40,8 @@ class FirebaseDecoder(internal val value: Any?, private val decodeDouble: (value
     override fun beginStructure(descriptor: SerialDescriptor) = structureDecoder(descriptor, decodeDouble)
 
     override fun decodeString() = decodeString(value)
-    // FIXME??
-    override fun decodeDouble() = decodeDouble(value) ?: throw SerializationException("Expected $value to be double")
+
+    override fun decodeDouble() = decodeDouble(value) ?: DefaultDecodeDouble(value)
 
     override fun decodeLong() = decodeLong(value)
 
@@ -62,13 +65,12 @@ class FirebaseDecoder(internal val value: Any?, private val decodeDouble: (value
 
     override fun decodeInline(inlineDescriptor: SerialDescriptor) = FirebaseDecoder(value, decodeDouble)
 
-    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
-        return decodeSerializableValuePolymorphic(value, decodeDouble, deserializer)
-    }
+    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T =
+        decodeSerializableValuePolymorphic(value, deserializer, decodeDouble)
 }
 
 class FirebaseClassDecoder(
-    decodeDouble: (value: Any?) -> Double?,
+    decodeDouble: DecodeDouble,
     size: Int,
     private val containsKey: (name: String) -> Boolean,
     get: (descriptor: SerialDescriptor, index: Int) -> Any?
@@ -84,11 +86,12 @@ class FirebaseClassDecoder(
             ?: DECODE_DONE
 }
 
-// FIXME??
-open class FirebaseEmptyCompositeDecoder(): FirebaseCompositeDecoder({ null }, 0, { _, _ -> })
+open class FirebaseEmptyCompositeDecoder(
+    decodeDouble: DecodeDouble = DefaultDecodeDouble
+): FirebaseCompositeDecoder(decodeDouble, 0, { _, _ -> })
 
 open class FirebaseCompositeDecoder(
-    private val decodeDouble: (value: Any?) -> Double?,
+    private val decodeDouble: DecodeDouble,
     private val size: Int,
     private val get: (descriptor: SerialDescriptor, index: Int) -> Any?
 ): CompositeDecoder {
@@ -113,8 +116,8 @@ open class FirebaseCompositeDecoder(
     override fun decodeByteElement(descriptor: SerialDescriptor, index: Int) = decodeByte(get(descriptor, index))
 
     override fun decodeCharElement(descriptor: SerialDescriptor, index: Int) = decodeChar(get(descriptor, index))
-    // FIXME ???
-    override fun decodeDoubleElement(descriptor: SerialDescriptor, index: Int) = decodeDouble(get(descriptor, index)) ?: throw SerializationException("Expected ${get(descriptor, index)} to be double")
+
+    override fun decodeDoubleElement(descriptor: SerialDescriptor, index: Int) = get(descriptor, index).let { decodeDouble(it) ?: DefaultDecodeDouble(it) }
 
     override fun decodeFloatElement(descriptor: SerialDescriptor, index: Int) = decodeFloat(get(descriptor, index))
 

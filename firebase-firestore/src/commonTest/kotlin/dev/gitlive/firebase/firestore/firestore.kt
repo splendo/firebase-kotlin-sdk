@@ -38,6 +38,13 @@ class FirebaseFirestoreTest {
         val list: List<String> = emptyList(),
     )
 
+    @Serializable
+    data class FirestoreTimeTest(
+        val prop1: String,
+        @Serializable(with = TimestampSerializer::class)
+        val time: Any
+    )
+
     @BeforeTest
     fun initializeFirebase() {
         Firebase
@@ -67,9 +74,9 @@ class FirebaseFirestoreTest {
             .get()
             .documents
         assertEquals(3, resultDocs.size)
-        assertEquals("aaa", resultDocs[0].document.get("prop1"))
-        assertEquals("bbb", resultDocs[1].document.get("prop1"))
-        assertEquals("ccc", resultDocs[2].document.get("prop1"))
+        assertEquals("aaa", resultDocs[0].get("prop1"))
+        assertEquals("bbb", resultDocs[1].get("prop1"))
+        assertEquals("ccc", resultDocs[2].get("prop1"))
     }
 
     @Test
@@ -79,9 +86,9 @@ class FirebaseFirestoreTest {
         val resultDocs = Firebase.firestore.collection("testFirestoreQuerying")
             .orderBy(FieldPath("prop1")).get().documents
         assertEquals(3, resultDocs.size)
-        assertEquals("aaa", resultDocs[0].document.get("prop1"))
-        assertEquals("bbb", resultDocs[1].document.get("prop1"))
-        assertEquals("ccc", resultDocs[2].document.get("prop1"))
+        assertEquals("aaa", resultDocs[0].get("prop1"))
+        assertEquals("bbb", resultDocs[1].get("prop1"))
+        assertEquals("ccc", resultDocs[2].get("prop1"))
     }
 
     @Test
@@ -91,9 +98,9 @@ class FirebaseFirestoreTest {
         val resultDocs = Firebase.firestore.collection("testFirestoreQuerying")
             .orderBy("prop1", Direction.ASCENDING).get().documents
         assertEquals(3, resultDocs.size)
-        assertEquals("aaa", resultDocs[0].document.get("prop1"))
-        assertEquals("bbb", resultDocs[1].document.get("prop1"))
-        assertEquals("ccc", resultDocs[2].document.get("prop1"))
+        assertEquals("aaa", resultDocs[0].get("prop1"))
+        assertEquals("bbb", resultDocs[1].get("prop1"))
+        assertEquals("ccc", resultDocs[2].get("prop1"))
     }
 
     @Test
@@ -103,9 +110,9 @@ class FirebaseFirestoreTest {
         val resultDocs = Firebase.firestore.collection("testFirestoreQuerying")
             .orderBy(FieldPath("prop1"), Direction.ASCENDING).get().documents
         assertEquals(3, resultDocs.size)
-        assertEquals("aaa", resultDocs[0].document.get("prop1"))
-        assertEquals("bbb", resultDocs[1].document.get("prop1"))
-        assertEquals("ccc", resultDocs[2].document.get("prop1"))
+        assertEquals("aaa", resultDocs[0].get("prop1"))
+        assertEquals("bbb", resultDocs[1].get("prop1"))
+        assertEquals("ccc", resultDocs[2].get("prop1"))
     }
 
     @Test
@@ -115,9 +122,9 @@ class FirebaseFirestoreTest {
         val resultDocs = Firebase.firestore.collection("testFirestoreQuerying")
             .orderBy("prop1", Direction.DESCENDING).get().documents
         assertEquals(3, resultDocs.size)
-        assertEquals("ccc", resultDocs[0].document.get("prop1"))
-        assertEquals("bbb", resultDocs[1].document.get("prop1"))
-        assertEquals("aaa", resultDocs[2].document.get("prop1"))
+        assertEquals("ccc", resultDocs[0].get("prop1"))
+        assertEquals("bbb", resultDocs[1].get("prop1"))
+        assertEquals("aaa", resultDocs[2].get("prop1"))
     }
 
     @Test
@@ -127,9 +134,9 @@ class FirebaseFirestoreTest {
         val resultDocs = Firebase.firestore.collection("testFirestoreQuerying")
             .orderBy(FieldPath("prop1"), Direction.DESCENDING).get().documents
         assertEquals(3, resultDocs.size)
-        assertEquals("ccc", resultDocs[0].document.get("prop1"))
-        assertEquals("bbb", resultDocs[1].document.get("prop1"))
-        assertEquals("aaa", resultDocs[2].document.get("prop1"))
+        assertEquals("ccc", resultDocs[0].get("prop1"))
+        assertEquals("bbb", resultDocs[1].get("prop1"))
+        assertEquals("aaa", resultDocs[2].get("prop1"))
     }
 
     @Test
@@ -150,8 +157,8 @@ class FirebaseFirestoreTest {
         )
         assertEquals(123.0, doc.get().data(FirestoreTest.serializer()).time)
 
-        assertNotEquals(FieldValue.serverTimestamp, doc.get().get("time"))
-        assertNotEquals(FieldValue.serverTimestamp, doc.get().data(FirestoreTest.serializer()).time)
+        assertNotEquals(FieldValue.serverTimestamp(), doc.get().get("time"))
+        assertNotEquals(FieldValue.serverTimestamp(), doc.get().data(FirestoreTest.serializer()).time)
     }
 
     @Test
@@ -168,8 +175,8 @@ class FirebaseFirestoreTest {
         delay(100) // makes possible to catch pending writes snapshot
 
         doc.set(
-            FirestoreTest.serializer(),
-            FirestoreTest("ServerTimestampBehavior", FieldValue.serverTimestamp)
+            FirestoreTimeTest.serializer(),
+            FirestoreTimeTest("ServerTimestampBehavior", FieldValue.serverTimestamp())
         )
 
         val pendingWritesSnapshot = deferredPendingWritesSnapshot.await()
@@ -214,7 +221,10 @@ class FirebaseFirestoreTest {
         }
         delay(100) // makes possible to catch pending writes snapshot
 
-        doc.set(FirestoreTest.serializer(), FirestoreTest("ServerTimestampBehavior", FieldValue.serverTimestamp))
+        doc.set(
+            FirestoreTimeTest.serializer(),
+            FirestoreTimeTest("ServerTimestampBehavior", FieldValue.serverTimestamp())
+        )
 
         val pendingWritesSnapshot = deferredPendingWritesSnapshot.await()
         assertTrue(pendingWritesSnapshot.metadata.hasPendingWrites)
@@ -235,7 +245,10 @@ class FirebaseFirestoreTest {
         }
         delay(100) // makes possible to catch pending writes snapshot
 
-        doc.set(FirestoreTest.serializer(), FirestoreTest("ServerTimestampBehavior", FieldValue.serverTimestamp))
+        doc.set(
+            FirestoreTimeTest.serializer(),
+            FirestoreTimeTest("ServerTimestampBehavior", FieldValue.serverTimestamp())
+        )
 
         val pendingWritesSnapshot = deferredPendingWritesSnapshot.await()
         assertTrue(pendingWritesSnapshot.metadata.hasPendingWrites)

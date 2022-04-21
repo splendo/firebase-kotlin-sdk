@@ -30,8 +30,8 @@ internal fun <T> FirebaseEncoder.encodePolymorphically(
 @Suppress("UNCHECKED_CAST")
 internal fun <T> FirebaseDecoder.decodeSerializableValuePolymorphic(
     value: Any?,
-    decodeDouble: (value: Any?) -> Double?,
     deserializer: DeserializationStrategy<T>,
+    decodeDouble: DecodeDouble
 ): T {
     if (deserializer !is AbstractPolymorphicSerializer<*>) {
         return deserializer.deserialize(this)

@@ -282,4 +282,11 @@ subprojects {
             }
         }
     }
+
+    tasks.withType(Test::class) {
+        testLogging {
+            events = TestLogEvent.values().toSet()
+        }
+        testLogging.exceptionFormat = TestExceptionFormat.FULL
+    }
 }

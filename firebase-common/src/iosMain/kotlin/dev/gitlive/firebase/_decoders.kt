@@ -11,34 +11,35 @@ import kotlinx.serialization.descriptors.StructureKind
 import platform.Foundation.*
 import platform.darwin.NSObject
 
-actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor, decodeDouble: (value: Any?) -> Double?): CompositeDecoder = when(descriptor.kind) {
-    StructureKind.CLASS, StructureKind.OBJECT -> when {
+actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor, decodeDouble: DecodeDouble): CompositeDecoder = when(descriptor.kind) {
+    StructureKind.CLASS, StructureKind.OBJECT, PolymorphicKind.SEALED -> when {
         value is Map<*, *> ->
-            FirebaseClassDecoder(value.size, { value.containsKey(it) }) { desc, index ->
+            FirebaseClassDecoder(decodeDouble, value.size, { value.containsKey(it) }) { desc, index ->
                 value[desc.getElementName(index)]
             }
         value is NSObject && NSClassFromString("FIRTimestamp") == value.`class`() -> {
-            makeFIRTimestampDecoder(value)
+            makeFIRTimestampDecoder(value, decodeDouble)
         }
         value is NSObject && NSClassFromString("FIRGeoPoint") == value.`class`() -> {
-            makeFIRGeoPointDecoder(value)
+            makeFIRGeoPointDecoder(value, decodeDouble)
         }
         value is NSObject && NSClassFromString("FIRDocumentReference") == value.`class`() -> {
-            makeFIRDocumentReferenceDecoder(value)
+            makeFIRDocumentReferenceDecoder(value, decodeDouble)
         }
         else -> FirebaseEmptyCompositeDecoder()
     }
     StructureKind.LIST, is PolymorphicKind -> (value as List<*>).let {
-        FirebaseCompositeDecoder(it.size) { _, index -> it[index] }
+        FirebaseCompositeDecoder(decodeDouble, it.size) { _, index -> it[index] }
     }
     StructureKind.MAP -> (value as Map<*, *>).entries.toList().let {
-        FirebaseCompositeDecoder(it.size) { _, index -> it[index/2].run { if(index % 2 == 0) key else value }  }
+        FirebaseCompositeDecoder(decodeDouble, it.size) { _, index -> it[index/2].run { if(index % 2 == 0) key else value }  }
     }
     else -> TODO("The firebase-kotlin-sdk does not support $descriptor for serialization yet")
 }
 
 private val timestampKeys = setOf("seconds", "nanoseconds")
-private fun makeFIRTimestampDecoder(objcObj: NSObject) = FirebaseClassDecoder(
+private fun makeFIRTimestampDecoder(objcObj: NSObject, decodeDouble: DecodeDouble) = FirebaseClassDecoder(
+    decodeDouble = decodeDouble,
     size = 2,
     containsKey = { timestampKeys.contains(it) }
 ) { descriptor, index ->
@@ -46,7 +47,8 @@ private fun makeFIRTimestampDecoder(objcObj: NSObject) = FirebaseClassDecoder(
 }
 
 private val geoPointKeys = setOf("latitude", "longitude")
-private fun makeFIRGeoPointDecoder(objcObj: NSObject) = FirebaseClassDecoder(
+private fun makeFIRGeoPointDecoder(objcObj: NSObject, decodeDouble: DecodeDouble) = FirebaseClassDecoder(
+    decodeDouble = decodeDouble,
     size = 2,
     containsKey = { geoPointKeys.contains(it) }
 ) { descriptor, index ->
@@ -54,7 +56,8 @@ private fun makeFIRGeoPointDecoder(objcObj: NSObject) = FirebaseClassDecoder(
 }
 
 private val documentKeys = setOf("path")
-private fun makeFIRDocumentReferenceDecoder(objcObj: NSObject) = FirebaseClassDecoder(
+private fun makeFIRDocumentReferenceDecoder(objcObj: NSObject, decodeDouble: DecodeDouble) = FirebaseClassDecoder(
+    decodeDouble = decodeDouble,
     size = 1,
     containsKey = { documentKeys.contains(it) }
 ) { descriptor, index ->
