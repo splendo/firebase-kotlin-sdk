@@ -46,7 +46,7 @@ android {
         resources.pickFirsts.add("androidsupportmultidexversion.txt")
     }
     lint {
-        isAbortOnError = false
+        abortOnError = false
     }
     dependencies {
         val firebaseBoMVersion: String by project

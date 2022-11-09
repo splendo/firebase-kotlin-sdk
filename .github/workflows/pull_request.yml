@@ -36,7 +36,7 @@ jobs:
         if: failure()
         with:
           name: "JS Test Report HTML"
-          path: "firebase-firestore/build/reports/tests/jsTest/"
+          path: "firebase-firestore/build/reports/tests/jsLegacyTest/"
       - name: Run iOS Tests
         run: ./gradlew cleanTest iosX64Test
       - name: Upload iOS test artifact

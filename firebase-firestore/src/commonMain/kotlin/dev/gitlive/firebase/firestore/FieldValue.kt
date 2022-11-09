@@ -12,6 +12,7 @@ expect class FieldValue internal constructor(nativeValue: Any) {
     companion object {
         val delete: FieldValue
         val serverTimestamp: FieldValue
+        fun increment(value: Int): FieldValue
         fun arrayUnion(vararg elements: Any): FieldValue
         fun arrayRemove(vararg elements: Any): FieldValue
     }

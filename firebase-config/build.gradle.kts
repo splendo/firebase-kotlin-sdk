@@ -42,7 +42,7 @@ android {
         resources.pickFirsts.add("META-INF/LGPL2.1")
     }
     lint {
-        isAbortOnError = false
+        abortOnError = false
     }
 }
 

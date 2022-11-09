@@ -8,7 +8,6 @@ import cocoapods.FirebaseAuth.*
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
 import dev.gitlive.firebase.FirebaseException
-import dev.gitlive.firebase.safeOffer
 import dev.gitlive.firebase.auth.ActionCodeResult.*
 import kotlin.native.concurrent.freeze
 import kotlinx.cinterop.*
@@ -31,7 +30,7 @@ actual class FirebaseAuth internal constructor(val ios: FIRAuth) {
 
     actual val authStateChanged get() = callbackFlow<FirebaseUser?> {
         val callback = { _: FIRAuth?, user: FIRUser? ->
-            safeOffer(user?.let { FirebaseUser(it) })
+            trySend(user?.let { FirebaseUser(it) })
             Unit
         }.freeze()
         val handle = ios.addAuthStateDidChangeListener(callback)
@@ -40,7 +39,7 @@ actual class FirebaseAuth internal constructor(val ios: FIRAuth) {
 
     actual val idTokenChanged get() = callbackFlow<FirebaseUser?> {
         val callback = { _: FIRAuth?, user: FIRUser? ->
-            safeOffer(user?.let { FirebaseUser(it) })
+            trySend(user?.let { FirebaseUser(it) })
             Unit
         }.freeze()
         val handle = ios.addIDTokenDidChangeListener(callback)

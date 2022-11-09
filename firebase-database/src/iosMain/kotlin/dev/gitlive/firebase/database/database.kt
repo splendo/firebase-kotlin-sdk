@@ -45,6 +45,9 @@ actual class FirebaseDatabase internal constructor(val ios: FIRDatabase) {
     actual fun reference(path: String) =
         DatabaseReference(ios.referenceWithPath(path), ios.persistenceEnabled)
 
+    actual fun reference() =
+        DatabaseReference(ios.reference(), ios.persistenceEnabled)
+
     actual fun setPersistenceEnabled(enabled: Boolean) {
         ios.persistenceEnabled = enabled
     }
@@ -99,7 +102,7 @@ actual open class Query internal constructor(
         val handle = ios.observeEventType(
             FIRDataEventTypeValue,
             withBlock = { snapShot: FIRDataSnapshot? ->
-                safeOffer(DataSnapshot(snapShot!!))
+                trySend(DataSnapshot(snapShot!!))
                 Unit
             }.freeze()
         ) { close(DatabaseException(it.toString(), null)) }
@@ -111,7 +114,7 @@ actual open class Query internal constructor(
             ios.observeEventType(
                 type.toEventType(),
                 andPreviousSiblingKeyWithBlock = { snapShot: FIRDataSnapshot?, key: String? ->
-                    safeOffer(ChildEvent(DataSnapshot(snapShot!!), type, key))
+                    trySend(ChildEvent(DataSnapshot(snapShot!!), type, key))
                     Unit
                 }.freeze()
             ) { close(DatabaseException(it.toString(), null)) }

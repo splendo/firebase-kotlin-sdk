@@ -219,6 +219,9 @@ actual class DocumentReference actual constructor(internal actual val nativeValu
     actual val path: String
         get() = ios.path
 
+    actual val parent: CollectionReference
+        get() = CollectionReference(ios.parent)
+
     actual val async = Async(nativeValue)
 
     actual fun collection(collectionPath: String) = CollectionReference(ios.collectionWithPath(collectionPath))
@@ -261,7 +264,7 @@ actual class DocumentReference actual constructor(internal actual val nativeValu
 
     actual val snapshots get() = callbackFlow<DocumentSnapshot> {
         val callback = { snapshot: FIRDocumentSnapshot?, error: NSError? ->
-            snapshot?.let { safeOffer(DocumentSnapshot(snapshot)) }
+            snapshot?.let { trySend(DocumentSnapshot(snapshot)) }
             error?.let { close(error.toException()) }
             Unit
         }.freeze()
@@ -328,11 +331,21 @@ actual open class Query(open val ios: FIRQuery) {
 
     actual val snapshots get() = callbackFlow<QuerySnapshot> {
         val callback = { snapshot: FIRQuerySnapshot?, error: NSError? ->
-            snapshot?.let { safeOffer(QuerySnapshot(snapshot)) }
+            snapshot?.let { trySend(QuerySnapshot(snapshot)) }
             error?.let { close(error.toException()) }
             Unit
         }.freeze()
         val listener = ios.addSnapshotListener(callback)
+        awaitClose { listener.remove() }
+    }
+
+    actual fun snapshots(includeMetadataChanges: Boolean) = callbackFlow<QuerySnapshot> {
+        val callback = { snapshot: FIRQuerySnapshot?, error: NSError? ->
+            snapshot?.let { trySend(QuerySnapshot(snapshot)) }
+            error?.let { close(error.toException()) }
+            Unit
+        }.freeze()
+        val listener = ios.addSnapshotListenerWithIncludeMetadataChanges(includeMetadataChanges, callback)
         awaitClose { listener.remove() }
     }
 
@@ -393,6 +406,17 @@ actual open class Query(open val ios: FIRQuery) {
 
     internal actual fun _orderBy(field: String, direction: Direction) = Query(ios.queryOrderedByField(field, direction == Direction.DESCENDING))
     internal actual fun _orderBy(field: FieldPath, direction: Direction) = Query(ios.queryOrderedByFieldPath(field.ios, direction == Direction.DESCENDING))
+
+    internal actual fun _startAfter(document: DocumentSnapshot) = Query(ios.queryStartingAfterDocument(document.ios))
+    internal actual fun _startAfter(vararg fieldValues: Any) = Query(ios.queryStartingAfterValues(fieldValues.asList()))
+    internal actual fun _startAt(document: DocumentSnapshot) = Query(ios.queryStartingAtDocument(document.ios))
+    internal actual fun _startAt(vararg fieldValues: Any) = Query(ios.queryStartingAtValues(fieldValues.asList()))
+
+    internal actual fun _endBefore(document: DocumentSnapshot) = Query(ios.queryEndingBeforeDocument(document.ios))
+    internal actual fun _endBefore(vararg fieldValues: Any) = Query(ios.queryEndingBeforeValues(fieldValues.asList()))
+    internal actual fun _endAt(document: DocumentSnapshot) = Query(ios.queryEndingAtDocument(document.ios))
+    internal actual fun _endAt(vararg fieldValues: Any) = Query(ios.queryEndingAtValues(fieldValues.asList()))
+
 }
 
 @Suppress("UNCHECKED_CAST")
@@ -402,6 +426,8 @@ actual class CollectionReference(override val ios: FIRCollectionReference) : Que
         get() = ios.path
 
     actual val async = Async(ios)
+
+    actual val parent get() = ios.parent?.let{DocumentReference(it)}
 
     actual fun document(documentPath: String) = DocumentReference(ios.documentWithPath(documentPath))
 
@@ -549,6 +575,7 @@ actual class SnapshotMetadata(val ios: FIRSnapshotMetadata) {
 actual class FieldPath private constructor(val ios: FIRFieldPath) {
     actual constructor(vararg fieldNames: String) : this(FIRFieldPath(fieldNames.asList()))
     actual val documentId: FieldPath get() = FieldPath(FIRFieldPath.documentID())
+
     override fun equals(other: Any?): Boolean = other is FieldPath && ios == other.ios
     override fun hashCode(): Int = ios.hashCode()
     override fun toString(): String = ios.toString()

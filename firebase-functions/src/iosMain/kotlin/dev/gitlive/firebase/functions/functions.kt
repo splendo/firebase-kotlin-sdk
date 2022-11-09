@@ -64,7 +64,7 @@ suspend inline fun <T> T.await(function: T.(callback: (NSError?) -> Unit) -> Uni
         if(error == null) {
             job.complete(Unit)
         } else {
-            job.completeExceptionally(FirebaseFunctionsException(error.toString()))
+            job.completeExceptionally(FirebaseFunctionsException(error.localizedDescription))
         }
     }.freeze()
     function(callback)
@@ -77,7 +77,7 @@ suspend inline fun <T, reified R> T.awaitResult(function: T.(callback: (R?, NSEr
         if(error == null) {
             job.complete(result)
         } else {
-            job.completeExceptionally(FirebaseFunctionsException(error.toString()))
+            job.completeExceptionally(FirebaseFunctionsException(error.localizedDescription))
         }
     }.freeze()
     function(callback)

@@ -128,6 +128,7 @@ external object firebase {
         class EmailAuthProvider : AuthProvider {
             companion object {
                 fun credential(email :  String, password : String): AuthCredential
+                fun credentialWithLink(email: String, emailLink: String): AuthCredential
             }
         }
 
@@ -371,13 +372,23 @@ external object firebase {
             fun where(field: String, opStr: String, value: Any?): Query
             fun where(field: FieldPath, opStr: String, value: Any?): Query
             fun onSnapshot(next: (snapshot: QuerySnapshot) -> Unit, error: (error: Error) -> Unit): () -> Unit
+            fun onSnapshot(options: Json, next: (snapshot: QuerySnapshot) -> Unit, error: (error: Error) -> Unit): () -> Unit
             fun limit(limit: Double): Query
             fun orderBy(field: String, direction: Any): Query
             fun orderBy(field: FieldPath, direction: Any): Query
+            fun startAfter(document: DocumentSnapshot): Query
+            fun startAfter(vararg fieldValues: Any): Query
+            fun startAt(document: DocumentSnapshot): Query
+            fun startAt(vararg fieldValues: Any): Query
+            fun endBefore(document: DocumentSnapshot): Query
+            fun endBefore(vararg fieldValues: Any): Query
+            fun endAt(document: DocumentSnapshot): Query
+            fun endAt(vararg fieldValues: Any): Query
         }
 
         open class CollectionReference : Query {
             val path: String
+            val parent: DocumentReference?
             fun doc(path: String = definedExternally): DocumentReference
             fun add(data: Any): Promise<DocumentReference>
         }
@@ -414,6 +425,7 @@ external object firebase {
         open class DocumentReference {
             val id: String
             val path: String
+            val parent: CollectionReference
 
             fun collection(path: String): CollectionReference
             fun get(options: Any? = definedExternally): Promise<DocumentSnapshot>
@@ -473,6 +485,7 @@ external object firebase {
         abstract class FieldValue {
             companion object {
                 fun delete(): FieldValue
+                fun increment(value: Int): FieldValue
                 fun arrayRemove(vararg elements: Any): FieldValue
                 fun arrayUnion(vararg elements: Any): FieldValue
                 fun serverTimestamp(): FieldValue
@@ -510,6 +523,16 @@ external object firebase {
             fun asNumber(): Number
             fun asString(): String?
             fun getSource(): String
+        }
+    }
+
+    fun installations(app: App? = definedExternally): installations.Installations
+
+    object installations {
+        interface Installations {
+            fun delete(): Promise<Unit>
+            fun getId(): Promise<String>
+            fun getToken(forceRefresh: Boolean): Promise<String>
         }
     }
 }

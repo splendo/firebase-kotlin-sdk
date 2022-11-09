@@ -21,6 +21,7 @@ actual class FieldValue internal actual constructor(internal actual val nativeVa
     actual companion object {
         actual val delete: FieldValue get() = FieldValue(NativeFieldValue.delete())
         actual val serverTimestamp: FieldValue get() = FieldValue(NativeFieldValue.serverTimestamp())
+        actual fun increment(value: Int): FieldValue = FieldValue(NativeFieldValue.increment(value))
         actual fun arrayUnion(vararg elements: Any): FieldValue = FieldValue(NativeFieldValue.arrayUnion(*elements))
         actual fun arrayRemove(vararg elements: Any): FieldValue = FieldValue(NativeFieldValue.arrayRemove(*elements))
     }
