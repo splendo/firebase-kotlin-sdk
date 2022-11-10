@@ -206,7 +206,6 @@ expect class DocumentReference internal constructor(nativeValue: NativeDocumentR
 
 expect class CollectionReference : Query {
     val path: String
-    val document: DocumentReference
     val parent: DocumentReference?
     val async: Async
 

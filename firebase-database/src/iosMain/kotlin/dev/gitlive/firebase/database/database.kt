@@ -12,7 +12,6 @@ import dev.gitlive.firebase.FirebaseApp
 import dev.gitlive.firebase.database.ChildEvent.Type
 import dev.gitlive.firebase.database.ChildEvent.Type.*
 import dev.gitlive.firebase.decode
-import dev.gitlive.firebase.safeOffer
 import kotlin.native.concurrent.freeze
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.FlowPreview
