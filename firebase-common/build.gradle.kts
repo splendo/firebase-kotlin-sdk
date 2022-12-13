@@ -79,8 +79,8 @@ kotlin {
     sourceSets {
         all {
             languageSettings.apply {
-                apiVersion = "1.5"
-                languageVersion = "1.5"
+                apiVersion = "1.6"
+                languageVersion = "1.6"
                 progressiveMode = true
                 optIn("kotlin.Experimental")
                 optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
@@ -115,7 +115,7 @@ kotlin {
 
         val jsMain by getting {
             dependencies {
-                api(npm("firebase", "9.4.1"))
+                api(npm("firebase", "9.6.10"))
             }
         }
     }

@@ -7,8 +7,10 @@ package dev.gitlive.firebase.firestore
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
 import dev.gitlive.firebase.FirebaseException
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationStrategy
 import kotlin.js.JsName
 
@@ -58,8 +60,6 @@ expect open class Query {
     suspend fun get(): QuerySnapshot
     internal fun _where(field: String, equalTo: Any?): Query
     internal fun _where(path: FieldPath, equalTo: Any?): Query
-    internal fun _where(field: String, equalTo: DocumentReference): Query
-    internal fun _where(path: FieldPath, equalTo: DocumentReference): Query
     internal fun _where(field: String, lessThan: Any? = null, greaterThan: Any? = null,
                         arrayContains: Any? = null, notEqualTo: Any? = null,
                         lessThanOrEqualTo: Any? = null, greaterThanOrEqualTo: Any? = null): Query
@@ -74,28 +74,36 @@ expect open class Query {
     internal fun _orderBy(field: FieldPath, direction: Direction): Query
 }
 
-fun Query.where(field: String, equalTo: Any?) = _where(field, equalTo)
-fun Query.where(path: FieldPath, equalTo: Any?) = _where(path, equalTo)
-fun Query.where(field: String, equalTo: DocumentReference) = _where(field, equalTo)
-fun Query.where(path: FieldPath, equalTo: DocumentReference) = _where(path, equalTo)
+private val Any?.value get() = when (this) {
+    is Timestamp -> nativeValue
+    is GeoPoint -> nativeValue
+    is DocumentReference -> nativeValue
+    else -> this
+}
+
+
+fun Query.where(field: String, equalTo: Any?) = _where(field, equalTo.value)
+fun Query.where(path: FieldPath, equalTo: Any?) = _where(path, equalTo.value)
 fun Query.where(field: String, lessThan: Any? = null, greaterThan: Any? = null,
                 arrayContains: Any? = null, notEqualTo: Any? = null,
                 lessThanOrEqualTo: Any? = null, greaterThanOrEqualTo: Any? = null) =
-    _where(field, lessThan, greaterThan, arrayContains, notEqualTo, lessThanOrEqualTo, greaterThanOrEqualTo)
+    _where(field, lessThan.value, greaterThan.value, arrayContains.value, notEqualTo.value, lessThanOrEqualTo.value, greaterThanOrEqualTo.value)
 fun Query.where(path: FieldPath, lessThan: Any? = null, greaterThan: Any? = null,
                 arrayContains: Any? = null, notEqualTo: Any? = null,
                 lessThanOrEqualTo: Any? = null, greaterThanOrEqualTo: Any? = null) =
-    _where(path, lessThan, greaterThan, arrayContains, notEqualTo, lessThanOrEqualTo, greaterThanOrEqualTo)
+    _where(path, lessThan.value, greaterThan.value, arrayContains.value, notEqualTo.value, lessThanOrEqualTo.value, greaterThanOrEqualTo.value)
 fun Query.where(field: String, inArray: List<Any>? = null, arrayContainsAny: List<Any>? = null,
                 notInArray: List<Any>? = null) =
-    _where(field, inArray, arrayContainsAny, notInArray)
+    _where(field, inArray.value, arrayContainsAny.value, notInArray.value)
 fun Query.where(path: FieldPath, inArray: List<Any>? = null, arrayContainsAny: List<Any>? = null,
                 notInArray: List<Any>? = null) =
-    _where(path, inArray, arrayContainsAny, notInArray)
+    _where(path, inArray.value, arrayContainsAny.value, notInArray.value)
 fun Query.orderBy(field: String, direction: Direction = Direction.ASCENDING) = _orderBy(field, direction)
 fun Query.orderBy(field: FieldPath, direction: Direction = Direction.ASCENDING) = _orderBy(field, direction)
 
 expect class WriteBatch {
+    val async: Async
+
     inline fun <reified T> set(documentRef: DocumentReference, data: T, encodeDefaults: Boolean = true, merge: Boolean = false): WriteBatch
     inline fun <reified T> set(documentRef: DocumentReference, data: T, encodeDefaults: Boolean = true, vararg mergeFields: String): WriteBatch
     inline fun <reified T> set(documentRef: DocumentReference, data: T, encodeDefaults: Boolean = true, vararg mergeFieldPaths: FieldPath): WriteBatch
@@ -114,13 +122,26 @@ expect class WriteBatch {
 
     fun delete(documentRef: DocumentReference): WriteBatch
     suspend fun commit()
+
+    @Suppress("DeferredIsResult")
+    class Async {
+        fun commit(): Deferred<Unit>
+    }
 }
 
-expect class DocumentReference {
+/** A class representing a platform specific Firebase DocumentReference. */
+expect class NativeDocumentReference
+
+/** A class representing a Firebase DocumentReference. */
+@Serializable(with = DocumentReferenceSerializer::class)
+expect class DocumentReference internal constructor(nativeValue: NativeDocumentReference) {
+    internal val nativeValue: NativeDocumentReference
 
     val id: String
     val path: String
     val snapshots: Flow<DocumentSnapshot>
+
+    val async: Async
 
     fun collection(collectionPath: String): CollectionReference
     suspend fun get(): DocumentSnapshot
@@ -140,17 +161,40 @@ expect class DocumentReference {
     suspend fun update(vararg fieldsAndValues: Pair<FieldPath, Any?>)
 
     suspend fun delete()
+
+    @Suppress("DeferredIsResult")
+    class Async {
+        inline fun <reified T> set(data: T, encodeDefaults: Boolean = true, merge: Boolean = false): Deferred<Unit>
+        inline fun <reified T> set(data: T, encodeDefaults: Boolean = true, vararg mergeFields: String): Deferred<Unit>
+        inline fun <reified T> set(data: T, encodeDefaults: Boolean = true, vararg mergeFieldPaths: FieldPath): Deferred<Unit>
+
+        fun <T> set(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true, merge: Boolean = false): Deferred<Unit>
+        fun <T> set(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true, vararg mergeFields: String): Deferred<Unit>
+        fun <T> set(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true, vararg mergeFieldPaths: FieldPath): Deferred<Unit>
+
+        inline fun <reified T> update(data: T, encodeDefaults: Boolean = true): Deferred<Unit>
+        fun <T> update(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true): Deferred<Unit>
+
+        fun update(vararg fieldsAndValues: Pair<String, Any?>): Deferred<Unit>
+        fun update(vararg fieldsAndValues: Pair<FieldPath, Any?>): Deferred<Unit>
+
+        fun delete(): Deferred<Unit>
+    }
 }
 
 expect class CollectionReference : Query {
     val path: String
+    val async: Async
 
     fun document(documentPath: String): DocumentReference
     fun document(): DocumentReference
     suspend inline fun <reified T> add(data: T, encodeDefaults: Boolean = true): DocumentReference
-    @Deprecated("This will be replaced with add(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true)")
-    suspend fun <T> add(data: T, strategy: SerializationStrategy<T>, encodeDefaults: Boolean = true): DocumentReference
     suspend fun <T> add(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true): DocumentReference
+    @Suppress("DeferredIsResult")
+    class Async {
+        inline fun <reified T> add(data: T, encodeDefaults: Boolean = true): Deferred<DocumentReference>
+        fun <T> add(strategy: SerializationStrategy<T>, data: T, encodeDefaults: Boolean = true): Deferred<DocumentReference>
+    }
 }
 
 expect class FirebaseFirestoreException : FirebaseException
@@ -231,14 +275,4 @@ expect class SnapshotMetadata {
 
 expect class FieldPath(vararg fieldNames: String) {
     val documentId: FieldPath
-}
-
-expect object FieldValue {
-    val delete: Any
-    fun arrayUnion(vararg elements: Any): Any
-    fun arrayRemove(vararg elements: Any): Any
-    fun serverTimestamp(): Any
-    @Deprecated("Replaced with FieldValue.delete")
-    @JsName("deprecatedDelete")
-    fun delete(): Any
 }

@@ -6,15 +6,16 @@ package dev.gitlive.firebase.database
 
 import cocoapods.FirebaseDatabase.*
 import cocoapods.FirebaseDatabase.FIRDataEventType.*
+import dev.gitlive.firebase.encode
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
 import dev.gitlive.firebase.database.ChildEvent.Type
 import dev.gitlive.firebase.database.ChildEvent.Type.*
 import dev.gitlive.firebase.decode
 import dev.gitlive.firebase.safeOffer
+import kotlin.native.concurrent.freeze
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.callbackFlow
@@ -26,13 +27,6 @@ import kotlinx.serialization.SerializationStrategy
 import platform.Foundation.*
 import kotlin.collections.component1
 import kotlin.collections.component2
-
-@PublishedApi
-internal inline fun <reified T> encode(value: T, shouldEncodeElementDefault: Boolean) =
-    dev.gitlive.firebase.encode(value, shouldEncodeElementDefault, FIRServerValue.timestamp())
-
-internal fun <T> encode(strategy: SerializationStrategy<T> , value: T, shouldEncodeElementDefault: Boolean): Any? =
-    dev.gitlive.firebase.encode(strategy, value, shouldEncodeElementDefault, FIRServerValue.timestamp())
 
 actual val Firebase.database
         by lazy { FirebaseDatabase(FIRDatabase.database()) }
@@ -104,9 +98,10 @@ actual open class Query internal constructor(
     actual val valueEvents get() = callbackFlow<DataSnapshot> {
         val handle = ios.observeEventType(
             FIRDataEventTypeValue,
-            withBlock = { snapShot ->
+            withBlock = { snapShot: FIRDataSnapshot? ->
                 safeOffer(DataSnapshot(snapShot!!))
-            }
+                Unit
+            }.freeze()
         ) { close(DatabaseException(it.toString(), null)) }
         awaitClose { ios.removeObserverWithHandle(handle) }
     }
@@ -115,9 +110,10 @@ actual open class Query internal constructor(
         val handles = types.map { type ->
             ios.observeEventType(
                 type.toEventType(),
-                andPreviousSiblingKeyWithBlock = { snapShot, key ->
+                andPreviousSiblingKeyWithBlock = { snapShot: FIRDataSnapshot?, key: String? ->
                     safeOffer(ChildEvent(DataSnapshot(snapShot!!), type, key))
-                }
+                    Unit
+                }.freeze()
             ) { close(DatabaseException(it.toString(), null)) }
         }
         awaitClose {
@@ -205,25 +201,27 @@ actual class DatabaseException actual constructor(message: String?, cause: Throw
 
 private suspend inline fun <T, reified R> T.awaitResult(whileOnline: Boolean, function: T.(callback: (NSError?, R?) -> Unit) -> Unit): R {
     val job = CompletableDeferred<R?>()
-    function { error, result ->
+    val callback = { error: NSError?, result: R? ->
         if(error == null) {
             job.complete(result)
         } else {
             job.completeExceptionally(DatabaseException(error.toString(), null))
         }
-    }
+    }.freeze()
+    function(callback)
     return job.run { if(whileOnline) awaitWhileOnline() else await() } as R
 }
 
 suspend inline fun <T> T.await(whileOnline: Boolean, function: T.(callback: (NSError?, FIRDatabaseReference?) -> Unit) -> Unit) {
     val job = CompletableDeferred<Unit>()
-    function { error, _ ->
+    val callback = { error: NSError?, _: FIRDatabaseReference? ->
         if(error == null) {
             job.complete(Unit)
         } else {
             job.completeExceptionally(DatabaseException(error.toString(), null))
         }
-    }
+    }.freeze()
+    function(callback)
     job.run { if(whileOnline) awaitWhileOnline() else await() }
 }
 

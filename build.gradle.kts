@@ -84,10 +84,7 @@ subprojects {
     }
 
     tasks.withType<Sign>().configureEach {
-        onlyIf {
-            false // note - disable signing completely - neither local publishing nor gcloud maven doesn't need it
-//            !project.gradle.startParameter.taskNames.contains("publishToMavenLocal")
-        }
+        onlyIf { project.gradle.startParameter.taskNames.contains("MavenRepository") }
     }
 
     tasks.whenTaskAdded {

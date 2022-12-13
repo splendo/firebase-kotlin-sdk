@@ -1,7 +1,15 @@
 package dev.gitlive.firebase.firestore
 
-expect class GeoPoint
+import kotlinx.serialization.Serializable
 
-expect fun geoPointWith(latitude: Double, longitude: Double): GeoPoint
-expect val GeoPoint.latitude: Double
-expect val GeoPoint.longitude: Double
+/** A class representing a platform specific Firebase GeoPoint. */
+expect class NativeGeoPoint
+
+/** A class representing a Firebase GeoPoint. */
+@Serializable(with = GeoPointSerializer::class)
+expect class GeoPoint internal constructor(nativeValue: NativeGeoPoint) {
+    constructor(latitude: Double, longitude: Double)
+    val latitude: Double
+    val longitude: Double
+    internal val nativeValue: NativeGeoPoint
+}
