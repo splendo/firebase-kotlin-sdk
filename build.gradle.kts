@@ -51,7 +51,9 @@ tasks {
 
 subprojects {
 
-    group = "dev.gitlive"
+    //// do not upstream ////
+    group = "com.splendo.firebase"
+    //// /////////////// ////
 
     apply(plugin = "com.adarshr.test-logger")
 
@@ -192,7 +194,11 @@ subprojects {
 
         repositories {
             maven {
-                url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2")
+                //// do not upstream ////
+                this.name = "snapshot"
+                url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+                //// /////////////// ////
+
                 credentials {
                     username = project.findProperty("sonatypeUsername") as String? ?: System.getenv("sonatypeUsername")
                     password = project.findProperty("sonatypePassword") as String? ?: System.getenv("sonatypePassword")

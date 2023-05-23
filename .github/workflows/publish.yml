@@ -5,7 +5,9 @@ name: Publish
 
 on:
   release:
-    types: [ prereleased, released ]
+    ## do not upstream ##
+    types: [ master, snapshot ]
+    ## ############### ##
 
 env:
   sonatypeUsername: ${{ secrets.SONATYPEUSERNAME }}
