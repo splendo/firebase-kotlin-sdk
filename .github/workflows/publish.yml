@@ -4,10 +4,10 @@
 name: Publish
 
 on:
-  release:
-    ## do not upstream ##
-    types: [ master, snapshot ]
-    ## ############### ##
+  ## do not upstream ##
+  push:
+    branches: [ master, snapshot ]
+  ## ############### ##
 
 env:
   sonatypeUsername: ${{ secrets.SONATYPEUSERNAME }}
@@ -25,6 +25,11 @@ jobs:
         with:
           distribution: 'tamurin'
           java-version: '17'
+      ## do no upstream ##
+      - name: replace -SNAPSHOT with -run_number-SNAPSHOT
+        run: sed -i '' 's/-SNAPSHOT/-${{github.run_number}}-SNAPSHOT/g' gradle.properties
+        shell: bash
+      ## ############## ##
       - uses: gradle/gradle-build-action@v2
       - name: Setup versions
         run: ./gradlew :updateVersions
