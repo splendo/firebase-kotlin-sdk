@@ -23,7 +23,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          distribution: 'tamurin'
+          distribution: 'temurin'
           java-version: '17'
       ## do no upstream ##
       - name: replace -SNAPSHOT with -run_number-SNAPSHOT
