@@ -203,6 +203,10 @@ subprojects {
         }
 
     }
+
+    tasks.withType(AbstractPublishToMaven::class.java).configureEach {
+        dependsOn(tasks.withType(Sign::class.java))
+    }
 }
 
 tasks.withType<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask> {
