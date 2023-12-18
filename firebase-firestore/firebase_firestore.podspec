@@ -8,14 +8,14 @@ Pod::Spec.new do |spec|
     spec.summary                  = ''
     spec.vendored_frameworks      = 'build/cocoapods/framework/firebase_firestore.framework'
     spec.libraries                = 'c++'
-                
-                
-                
+
+
+
     spec.pod_target_xcconfig = {
         'KOTLIN_PROJECT_PATH' => ':firebase-firestore',
         'PRODUCT_MODULE_NAME' => 'firebase_firestore',
     }
-                
+
     spec.script_phases = [
         {
             :name => 'Build firebase_firestore',
@@ -35,5 +35,5 @@ Pod::Spec.new do |spec|
             SCRIPT
         }
     ]
-                
+
 end

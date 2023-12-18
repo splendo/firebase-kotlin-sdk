@@ -116,8 +116,6 @@ subprojects {
             "androidMainImplementation"(platform("com.google.firebase:firebase-bom:$firebaseBoMVersion"))
             "commonTestImplementation"(kotlin("test-common"))
             "commonTestImplementation"(kotlin("test-annotations-common"))
-            "commonTestImplementation"("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-            "commonTestImplementation"("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
             if (this@afterEvaluate.name != "firebase-crashlytics") {
                 "jvmMainApi"("dev.gitlive:firebase-java-sdk:0.1.2")
                 "jvmMainApi"("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:$coroutinesVersion") {

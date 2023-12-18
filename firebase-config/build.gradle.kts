@@ -104,7 +104,7 @@ kotlin {
             }
             noPodspec()
             pod("FirebaseRemoteConfig") {
-                version = "10.15.0"
+                version = "10.19.0"
             }
         }
     }
@@ -133,6 +133,7 @@ kotlin {
                 optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
                 if (name.lowercase().contains("ios")) {
                     optIn("kotlinx.cinterop.ExperimentalForeignApi")
+                    optIn("kotlinx.cinterop.BetaInteropApi")
                 }
             }
         }

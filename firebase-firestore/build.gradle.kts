@@ -92,8 +92,15 @@ kotlin {
                 baseName = "FirebaseFirestore"
             }
             noPodspec()
+            // As of Firebase 10.17 Firestore has moved all ObjC headers to FirebaseFirestoreInternal and the kotlin cocoapods plugin does not handle this well
+            // Adding it manually seems to resolve the issue
+            pod("FirebaseFirestoreInternal") {
+                version = "10.19.0"
+            }
             pod("FirebaseFirestore") {
-                version = "10.15.0"
+                version = "10.19.0"
+                extraOpts += listOf("-compiler-option", "-fmodules")
+                useInteropBindingFrom("FirebaseFirestoreInternal")
             }
         }
     }
@@ -145,6 +152,7 @@ kotlin {
                 }
             }
         }
+
         getByName("commonMain") {
             dependencies {
                 api(project(":firebase-app"))

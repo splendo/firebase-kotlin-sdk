@@ -35,9 +35,9 @@ actual data class FirebaseApp internal constructor(val ios: FIRApp) {
         get() = ios.options.run { FirebaseOptions(bundleID, APIKey!!, databaseURL!!, trackingID, storageBucket, projectID, GCMSenderID) }
 
     actual suspend fun delete() {
-        val hasDeleted = CompletableDeferred<Unit>()
-        ios.deleteApp { hasDeleted.complete(Unit) }
-        hasDeleted.await()
+        val deleted = CompletableDeferred<Unit>()
+        ios.deleteApp { deleted.complete(Unit) }
+        deleted.await()
     }
 }
 

@@ -5,6 +5,7 @@
 package dev.gitlive.firebase.firestore
 
 import dev.gitlive.firebase.*
+import dev.gitlive.firebase.firestore.encode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -18,7 +19,14 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.builtins.serializer
 import kotlin.random.Random
-import kotlin.test.*
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 expect val emulatorHost: String
 expect val context: Any
@@ -28,7 +36,6 @@ expect fun encodedAsMap(encoded: Any?): Map<String, Any?>
 /** @return pairs as raw encoded data. */
 expect fun Map<String, Any?>.asEncoded(): Any
 
-// NOTE: serializer<T>() does not work in a legacy JS so serializers have to be provided explicitly
 @IgnoreForAndroidUnitTest
 class FirebaseFirestoreTest {
 
@@ -64,7 +71,7 @@ class FirebaseFirestoreTest {
 
         firestore = Firebase.firestore(app).apply {
             useEmulator(emulatorHost, 8080)
-            setSettings(FirebaseFirestore.Settings.create(cacheSettings = LocalCacheSettings.Memory(LocalCacheSettings.Memory.GarbageCollectorSettings.Eager)))
+            setSettings(cacheSettings = LocalCacheSettings.Memory(LocalCacheSettings.Memory.GarbageCollectorSettings.Eager))
         }
     }
 

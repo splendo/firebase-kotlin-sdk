@@ -122,7 +122,7 @@ class ContextSwitchTest {
             .document("fieldValuesOps")
 
         // store
-        getDocument().set(strategy = TestData.serializer(), data = TestData(data.initial), encodeSettings = EncodeSettings(shouldEncodeElementDefault = true), merge = false)
+        getDocument().set(strategy = TestData.serializer(), data = TestData(data.initial), merge = false)
 
         // append & verify
         getDocument().update(data.updates[0].op)

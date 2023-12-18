@@ -25,6 +25,7 @@ actual fun Firebase.remoteConfig(app: FirebaseApp): FirebaseRemoteConfig = Fireb
 )
 
 actual class FirebaseRemoteConfig internal constructor(val ios: FIRRemoteConfig) {
+    @Suppress("UNCHECKED_CAST")
     actual val all: Map<String, FirebaseRemoteConfigValue>
         get() {
             return listOf(

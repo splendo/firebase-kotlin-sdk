@@ -4,8 +4,11 @@
 
 package dev.gitlive.firebase.perf
 
-import dev.gitlive.firebase.*
-import kotlinx.coroutines.CoroutineScope
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.FirebaseOptions
+import dev.gitlive.firebase.apps
+import dev.gitlive.firebase.initialize
+import dev.gitlive.firebase.runTest
 import kotlin.test.*
 import kotlin.time.Duration.Companion.minutes
 
