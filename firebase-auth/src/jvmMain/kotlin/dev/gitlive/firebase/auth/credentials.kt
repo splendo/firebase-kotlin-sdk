@@ -6,17 +6,12 @@ package dev.gitlive.firebase.auth
 
 import android.app.Activity
 import com.google.firebase.FirebaseException
-import com.google.firebase.auth.EmailAuthProvider
-import com.google.firebase.auth.FacebookAuthProvider
-import com.google.firebase.auth.GithubAuthProvider
-import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.PhoneAuthProvider
-import com.google.firebase.auth.TwitterAuthProvider
-import dev.gitlive.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 
 actual open class AuthCredential(open val android: com.google.firebase.auth.AuthCredential) {
@@ -32,20 +27,20 @@ actual object EmailAuthProvider {
     actual fun credential(
         email: String,
         password: String
-    ): AuthCredential = AuthCredential(EmailAuthProvider.getCredential(email, password))
+    ): AuthCredential = AuthCredential(com.google.firebase.auth.EmailAuthProvider.getCredential(email, password))
 
     actual fun credentialWithLink(
         email: String,
         emailLink: String
-    ): AuthCredential = AuthCredential(EmailAuthProvider.getCredentialWithLink(email, emailLink))
+    ): AuthCredential = AuthCredential(com.google.firebase.auth.EmailAuthProvider.getCredentialWithLink(email, emailLink))
 }
 
 actual object FacebookAuthProvider {
-    actual fun credential(accessToken: String): AuthCredential = AuthCredential(FacebookAuthProvider.getCredential(accessToken))
+    actual fun credential(accessToken: String): AuthCredential = AuthCredential(com.google.firebase.auth.FacebookAuthProvider.getCredential(accessToken))
 }
 
 actual object GithubAuthProvider {
-    actual fun credential(token: String): AuthCredential = AuthCredential(GithubAuthProvider.getCredential(token))
+    actual fun credential(token: String): AuthCredential = AuthCredential(com.google.firebase.auth.GithubAuthProvider.getCredential(token))
 }
 
 actual object GoogleAuthProvider {
@@ -53,7 +48,7 @@ actual object GoogleAuthProvider {
         require(idToken != null || accessToken != null) {
             "Both parameters are optional but at least one must be present."
         }
-        return AuthCredential(GoogleAuthProvider.getCredential(idToken, accessToken))
+        return AuthCredential(com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, accessToken))
     }
 }
 
@@ -87,8 +82,7 @@ actual class PhoneAuthProvider(val android: com.google.firebase.auth.PhoneAuthPr
 
     actual constructor(auth: FirebaseAuth) : this(com.google.firebase.auth.PhoneAuthProvider.getInstance(auth.android))
 
-    actual fun credential(verificationId: String, smsCode: String): PhoneAuthCredential = PhoneAuthCredential(
-        PhoneAuthProvider.getCredential(verificationId, smsCode))
+    actual fun credential(verificationId: String, smsCode: String): PhoneAuthCredential = PhoneAuthCredential(com.google.firebase.auth.PhoneAuthProvider.getCredential(verificationId, smsCode))
 
     actual suspend fun verifyPhoneNumber(phoneNumber: String, verificationProvider: PhoneVerificationProvider): AuthCredential = coroutineScope {
         val response = CompletableDeferred<Result<AuthCredential>>()
@@ -136,6 +130,5 @@ actual interface PhoneVerificationProvider {
 }
 
 actual object TwitterAuthProvider {
-    actual fun credential(token: String, secret: String): AuthCredential = AuthCredential(
-        TwitterAuthProvider.getCredential(token, secret))
+    actual fun credential(token: String, secret: String): AuthCredential = AuthCredential(com.google.firebase.auth.TwitterAuthProvider.getCredential(token, secret))
 }

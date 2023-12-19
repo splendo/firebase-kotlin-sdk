@@ -82,7 +82,7 @@ class FirebaseDatabaseTest {
 //    @Test
 //    fun testBasicIncrementTransaction() = runTest {
 //        val data = DatabaseTest("PostOne", 2)
-//        val userRef = Firebase.database.reference("users/user_1/post_id_1")
+//        val userRef = database.reference("users/user_1/post_id_1")
 //        setupDatabase(userRef, data, DatabaseTest.serializer())
 //
 //        // Check database before transaction

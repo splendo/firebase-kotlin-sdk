@@ -96,7 +96,7 @@ kotlin {
             }
             noPodspec()
             pod("FirebaseDatabase") {
-                version = "10.17.0"
+                version = "10.19.0"
             }
         }
     }
@@ -151,6 +151,10 @@ kotlin {
             dependencies {
                 implementation(project(":test-utils"))
             }
+        }
+
+        getByName("jvmMain") {
+            kotlin.srcDir("src/androidMain/kotlin")
         }
 
         getByName("androidMain") {

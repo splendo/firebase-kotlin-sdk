@@ -43,28 +43,6 @@ actual data class FirebaseApp internal constructor(val android: com.google.fireb
 actual fun Firebase.apps(context: Any?) = com.google.firebase.FirebaseApp.getApps(context as Context)
     .map { FirebaseApp(it) }
 
-actual class FirebaseOptions actual constructor(
-    actual val applicationId: String,
-    actual val apiKey: String,
-    actual val databaseUrl: String?,
-    actual val gaTrackingId: String?,
-    actual val storageBucket: String?,
-    actual val projectId: String?,
-    actual val gcmSenderId: String?,
-    actual val authDomain: String?
-) {
-    actual companion object {
-        actual fun withContext(context: Any): FirebaseOptions? {
-            return when (context) {
-                is Context -> com.google.firebase.FirebaseOptions.fromResource(context)
-                else -> null
-            }?.run {
-                FirebaseOptions(applicationId, apiKey, databaseUrl, gaTrackingId, storageBucket, projectId, gcmSenderId)
-            }
-        }
-    }
-}
-
 private fun FirebaseOptions.toAndroid() = com.google.firebase.FirebaseOptions.Builder()
     .setApplicationId(applicationId)
     .setApiKey(apiKey)

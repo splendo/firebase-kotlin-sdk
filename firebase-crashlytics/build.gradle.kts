@@ -91,7 +91,7 @@ kotlin {
             }
             noPodspec()
             pod("FirebaseCrashlytics") {
-                version = "10.17.0"
+                version = "10.19.0"
             }
         }
     }
@@ -131,7 +131,6 @@ kotlin {
         }
 
 //        getByName("jvmMain") {
-//            kotlin.srcDir("src/androidMain/kotlin")
 //        }
     }
 }

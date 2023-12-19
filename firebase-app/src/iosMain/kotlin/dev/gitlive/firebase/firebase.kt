@@ -35,9 +35,9 @@ actual data class FirebaseApp internal constructor(val ios: FIRApp) {
         get() = ios.options.run { FirebaseOptions(bundleID, APIKey!!, databaseURL!!, trackingID, storageBucket, projectID, GCMSenderID) }
 
     actual suspend fun delete() {
-        val hasDeleted = CompletableDeferred<Unit>()
-        ios.deleteApp { hasDeleted.complete(Unit) }
-        hasDeleted.await()
+        val deleted = CompletableDeferred<Unit>()
+        ios.deleteApp { deleted.complete(Unit) }
+        deleted.await()
     }
 }
 
@@ -45,28 +45,6 @@ actual fun Firebase.apps(context: Any?) = FIRApp.allApps()
     .orEmpty()
     .values
     .map { FirebaseApp(it as FIRApp) }
-
-actual class FirebaseOptions actual constructor(
-    actual val applicationId: String,
-    actual val apiKey: String,
-    actual val databaseUrl: String?,
-    actual val gaTrackingId: String?,
-    actual val storageBucket: String?,
-    actual val projectId: String?,
-    actual val gcmSenderId: String?,
-    actual val authDomain: String?
-) {
-    actual companion object {
-        actual fun withContext(context: Any): FirebaseOptions? {
-            return when (context) {
-                is String -> FIROptions(contentsOfFile = context)
-                else -> FIROptions.defaultOptions()
-            }?.run {
-                FirebaseOptions(googleAppID, APIKey!!, databaseURL, trackingID, storageBucket, projectID, GCMSenderID)
-            }
-        }
-    }
-}
 
 private fun FirebaseOptions.toIos() = FIROptions(this@toIos.applicationId, this@toIos.gcmSenderId ?: "").apply {
         APIKey = this@toIos.apiKey

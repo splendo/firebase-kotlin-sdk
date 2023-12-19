@@ -108,10 +108,6 @@ kotlin {
             }
         }
 
-        getByName("jvmMain") {
-            kotlin.srcDir("src/androidMain/kotlin")
-        }
-
         getByName("jsMain") {
             dependencies {
                 implementation(kotlin("test-js"))

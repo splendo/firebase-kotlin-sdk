@@ -5,7 +5,6 @@
 package dev.gitlive.firebase.auth
 
 import dev.gitlive.firebase.*
-import kotlinx.coroutines.test.TestResult
 import kotlin.random.Random
 import kotlin.test.*
 

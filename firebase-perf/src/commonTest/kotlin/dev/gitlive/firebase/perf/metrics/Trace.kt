@@ -5,6 +5,8 @@ import dev.gitlive.firebase.perf.FirebasePerformance
 import dev.gitlive.firebase.perf.IgnoreForAndroidUnitTest
 import dev.gitlive.firebase.perf.context
 import dev.gitlive.firebase.perf.performance
+import dev.gitlive.firebase.runBlockingTest
+import dev.gitlive.firebase.runTest
 import kotlinx.coroutines.delay
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest

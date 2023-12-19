@@ -6,8 +6,6 @@
 package dev.gitlive.firebase.storage
 
 import androidx.test.platform.app.InstrumentationRegistry
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.runBlocking
 
 actual val emulatorHost: String = "10.0.2.2"
 

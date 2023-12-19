@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 expect val context: Any
 expect annotation class IgnoreForAndroidUnitTest()
 
+@IgnoreForAndroidUnitTest
 class FirebaseAppTest {
     
     @IgnoreForAndroidUnitTest
