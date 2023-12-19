@@ -14,6 +14,7 @@ expect val emulatorHost: String
 expect val context: Any
 expect annotation class IgnoreForAndroidUnitTest()
 
+@IgnoreForAndroidUnitTest
 class FirebaseStorageTest {
 
     lateinit var storage: FirebaseStorage

@@ -6,7 +6,6 @@
 package dev.gitlive.firebase.crashlytics
 
 import androidx.test.platform.app.InstrumentationRegistry
-import kotlinx.coroutines.CoroutineScope
 
 actual val emulatorHost: String = "10.0.2.2"
 
