@@ -71,7 +71,7 @@ class FirebaseFirestoreTest {
 
         firestore = Firebase.firestore(app).apply {
             useEmulator(emulatorHost, 8080)
-            setSettings(cacheSettings = LocalCacheSettings.Memory(LocalCacheSettings.Memory.GarbageCollectorSettings.Eager))
+            setSettings(FirebaseFirestore.Settings.create(cacheSettings = LocalCacheSettings.Memory(LocalCacheSettings.Memory.GarbageCollectorSettings.Eager)))
         }
     }
 
@@ -650,11 +650,6 @@ class FirebaseFirestoreTest {
         firestore.collection("testFirestoreQuerying")
             .document("three")
             .set(FirestoreTest.serializer(), FirestoreTest("ccc"))
-    }
-
-    @Test
-    fun testDefaultOptions() = runTest {
-        assertNull(FirebaseOptions.withContext(1))
     }
 
     @Test
