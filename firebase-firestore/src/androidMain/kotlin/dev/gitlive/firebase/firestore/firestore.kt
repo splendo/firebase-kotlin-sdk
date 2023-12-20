@@ -5,6 +5,7 @@
 @file:JvmName("android")
 package dev.gitlive.firebase.firestore
 
+import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.*
 import dev.gitlive.firebase.*
 import kotlinx.coroutines.*
@@ -321,7 +322,7 @@ actual open class Query(open val android: AndroidQuery) {
         awaitClose { listener.remove() }
     }
 
-    internal actual fun where(field: String, vararg clauses: WhereClause) = Query(
+    actual fun where(field: String, vararg clauses: WhereClause) = Query(
         clauses.fold(android) { query, clause ->
             when (clause) {
                 is WhereClause.ForNullableObject -> {
@@ -331,6 +332,7 @@ actual open class Query(open val android: AndroidQuery) {
                     }
                     modifier.invoke(query, field, clause.safeValue)
                 }
+
                 is WhereClause.ForObject -> {
                     val modifier: AndroidQuery.(String, Any) -> AndroidQuery = when (clause) {
                         is WhereClause.LessThan -> AndroidQuery::whereLessThan
@@ -341,6 +343,7 @@ actual open class Query(open val android: AndroidQuery) {
                     }
                     modifier.invoke(query, field, clause.safeValue)
                 }
+
                 is WhereClause.ForArray -> {
                     val modifier: AndroidQuery.(String, List<Any>) -> AndroidQuery = when (clause) {
                         is WhereClause.InArray -> AndroidQuery::whereIn
@@ -350,9 +353,10 @@ actual open class Query(open val android: AndroidQuery) {
                     modifier.invoke(query, field, clause.safeValues)
                 }
             }
-        )
+        }
+    )
 
-    internal actual fun where(path: FieldPath, vararg clauses: WhereClause) = Query(
+    actual fun where(path: FieldPath, vararg clauses: WhereClause) = Query(
         clauses.fold(android) { query, clause ->
             when (clause) {
                 is WhereClause.ForNullableObject -> {
@@ -362,6 +366,7 @@ actual open class Query(open val android: AndroidQuery) {
                     }
                     modifier.invoke(query, path.android, clause.safeValue)
                 }
+
                 is WhereClause.ForObject -> {
                     val modifier: AndroidQuery.(AndroidFieldPath, Any) -> AndroidQuery = when (clause) {
                         is WhereClause.LessThan -> AndroidQuery::whereLessThan
@@ -372,6 +377,7 @@ actual open class Query(open val android: AndroidQuery) {
                     }
                     modifier.invoke(query, path.android, clause.safeValue)
                 }
+
                 is WhereClause.ForArray -> {
                     val modifier: AndroidQuery.(AndroidFieldPath, List<Any>) -> AndroidQuery = when (clause) {
                         is WhereClause.InArray -> AndroidQuery::whereIn
@@ -381,7 +387,8 @@ actual open class Query(open val android: AndroidQuery) {
                     modifier.invoke(query, path.android, clause.safeValues)
                 }
             }
-        )
+        }
+    )
 
     internal actual fun _orderBy(field: String, direction: Direction) = Query(android.orderBy(field, direction))
     internal actual fun _orderBy(field: FieldPath, direction: Direction) = Query(android.orderBy(field.android, direction))

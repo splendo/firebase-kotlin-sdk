@@ -311,7 +311,7 @@ actual open class Query(open val ios: FIRQuery) {
         awaitClose { listener.remove() }
     }
 
-    internal actual fun where(field: String, vararg clauses: WhereClause) = Query(
+    actual fun where(field: String, vararg clauses: WhereClause) = Query(
         clauses.fold(ios) { query, clause ->
             when (clause) {
                 is WhereClause.EqualTo -> query.queryWhereField(field, isEqualTo = clause.safeValue ?: NSNull)
@@ -328,21 +328,38 @@ actual open class Query(open val ios: FIRQuery) {
         }
     )
 
-    internal actual fun where(path: FieldPath, vararg clauses: WhereClause) = Query(
+    actual fun where(path: FieldPath, vararg clauses: WhereClause) = Query(
         clauses.fold(ios) { query, clause ->
             when (clause) {
                 is WhereClause.EqualTo -> query.queryWhereFieldPath(path.ios, isEqualTo = clause.safeValue ?: NSNull)
-                is WhereClause.NotEqualTo -> query.queryWhereFieldPath(path.ios, isNotEqualTo = clause.safeValue ?: NSNull)
+                is WhereClause.NotEqualTo -> query.queryWhereFieldPath(
+                    path.ios,
+                    isNotEqualTo = clause.safeValue ?: NSNull
+                )
+
                 is WhereClause.LessThan -> query.queryWhereFieldPath(path.ios, isLessThan = clause.safeValue)
                 is WhereClause.GreaterThan -> query.queryWhereFieldPath(path.ios, isGreaterThan = clause.safeValue)
-                is WhereClause.LessThanOrEqualTo -> query.queryWhereFieldPath(path.ios, isLessThanOrEqualTo = clause.safeValue)
-                is WhereClause.GreaterThanOrEqualTo -> query.queryWhereFieldPath(path.ios, isGreaterThanOrEqualTo = clause.safeValue)
+                is WhereClause.LessThanOrEqualTo -> query.queryWhereFieldPath(
+                    path.ios,
+                    isLessThanOrEqualTo = clause.safeValue
+                )
+
+                is WhereClause.GreaterThanOrEqualTo -> query.queryWhereFieldPath(
+                    path.ios,
+                    isGreaterThanOrEqualTo = clause.safeValue
+                )
+
                 is WhereClause.ArrayContains -> query.queryWhereFieldPath(path.ios, arrayContains = clause.safeValue)
                 is WhereClause.InArray -> query.queryWhereFieldPath(path.ios, `in` = clause.safeValues)
-                is WhereClause.ArrayContainsAny -> query.queryWhereFieldPath(path.ios, arrayContainsAny = clause.safeValues)
+                is WhereClause.ArrayContainsAny -> query.queryWhereFieldPath(
+                    path.ios,
+                    arrayContainsAny = clause.safeValues
+                )
+
                 is WhereClause.NotInArray -> query.queryWhereFieldPath(path.ios, notIn = clause.safeValues)
             }
-        )
+        }
+    )
 
     internal actual fun _orderBy(field: String, direction: Direction) = Query(ios.queryOrderedByField(field, direction == Direction.DESCENDING))
     internal actual fun _orderBy(field: FieldPath, direction: Direction) = Query(ios.queryOrderedByFieldPath(field.ios, direction == Direction.DESCENDING))

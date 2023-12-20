@@ -140,8 +140,8 @@ expect open class Query {
     fun snapshots(includeMetadataChanges: Boolean = false): Flow<QuerySnapshot>
     suspend fun get(): QuerySnapshot
 
-    internal fun where(field: String, vararg clauses: WhereClause): Query
-    internal fun where(path: FieldPath, vararg clauses: WhereClause): Query
+    fun where(field: String, vararg clauses: WhereClause): Query
+    fun where(path: FieldPath, vararg clauses: WhereClause): Query
 
     internal fun _orderBy(field: String, direction: Direction): Query
     internal fun _orderBy(field: FieldPath, direction: Direction): Query
@@ -166,10 +166,12 @@ private val Any.safeValue: Any get() = when (this) {
     else -> this
 }
 
-fun Query.where(field: String, equalTo: Any?) = where(field, WhereClause.EqualTo(equalTo))
-fun Query.where(path: FieldPath, equalTo: Any?) = where(path, WhereClause.EqualTo(equalTo))
-fun Query.whereNot(field: String, notEqualTo: Any?) = where(field, WhereClause.NotEqualTo(notEqualTo))
-fun Query.whereNot(path: FieldPath, notEqualTo: Any?) = where(path, WhereClause.NotEqualTo(notEqualTo))
+fun Query.where(field: String, equalTo: Any?) = where(field, clause = WhereClause.EqualTo(equalTo))
+fun Query.where(path: FieldPath, equalTo: Any?) = where(path, clause = WhereClause.EqualTo(equalTo))
+fun Query.where(field: String, clause: WhereClause): Query = where(field, clauses = listOf(clause).toTypedArray())
+fun Query.where(path: FieldPath, clause: WhereClause): Query = where(path, clauses = listOf(clause).toTypedArray())
+fun Query.whereNot(field: String, notEqualTo: Any?) = where(field, clause = WhereClause.NotEqualTo(notEqualTo))
+fun Query.whereNot(path: FieldPath, notEqualTo: Any?) = where(path, clause = WhereClause.NotEqualTo(notEqualTo))
 fun Query.where(field: String,
                 lessThan: Any? = null,
                 greaterThan: Any? = null,
@@ -182,7 +184,7 @@ fun Query.where(field: String,
 ) =
     where(
         field,
-        listOfNotNull(
+        clauses = listOfNotNull(
             lessThan?.let { WhereClause.LessThan(it) },
             greaterThan?.let { WhereClause.GreaterThan(it) },
             lessThanOrEqualTo?.let { WhereClause.LessThanOrEqualTo(it) },
@@ -191,7 +193,7 @@ fun Query.where(field: String,
             arrayContainsAny?.let { WhereClause.ArrayContainsAny(it) },
             inArray?.let { WhereClause.InArray(it) },
             notInArray?.let { WhereClause.NotInArray(it) }
-        )
+        ).toTypedArray()
     )
 
 fun Query.where(path: FieldPath,
@@ -206,7 +208,7 @@ fun Query.where(path: FieldPath,
 ) =
     where(
         path,
-        listOfNotNull(
+        clauses = listOfNotNull(
             lessThan?.let { WhereClause.LessThan(it) },
             greaterThan?.let { WhereClause.GreaterThan(it) },
             lessThanOrEqualTo?.let { WhereClause.LessThanOrEqualTo(it) },
@@ -215,7 +217,7 @@ fun Query.where(path: FieldPath,
             arrayContainsAny?.let { WhereClause.ArrayContainsAny(it) },
             inArray?.let { WhereClause.InArray(it) },
             notInArray?.let { WhereClause.NotInArray(it) }
-        )
+        ).toTypedArray()
     )
 
 
@@ -223,14 +225,14 @@ fun Query.orderBy(field: String, direction: Direction = Direction.ASCENDING) = _
 fun Query.orderBy(field: FieldPath, direction: Direction = Direction.ASCENDING) = _orderBy(field, direction)
 
 fun Query.startAfter(document: DocumentSnapshot) = _startAfter(document)
-fun Query.startAfter(vararg fieldValues: Any) = _startAfter(*(fieldValues.mapNotNull { it.safeValue }.toTypedArray()))
+fun Query.startAfter(vararg fieldValues: Any) = _startAfter(*(fieldValues.map { it.safeValue }.toTypedArray()))
 fun Query.startAt(document: DocumentSnapshot) = _startAt(document)
-fun Query.startAt(vararg fieldValues: Any) = _startAt(*(fieldValues.mapNotNull { it.safeValue }.toTypedArray()))
+fun Query.startAt(vararg fieldValues: Any) = _startAt(*(fieldValues.map { it.safeValue }.toTypedArray()))
 
 fun Query.endBefore(document: DocumentSnapshot) = _endBefore(document)
-fun Query.endBefore(vararg fieldValues: Any) = _endBefore(*(fieldValues.mapNotNull { it.safeValue }.toTypedArray()))
+fun Query.endBefore(vararg fieldValues: Any) = _endBefore(*(fieldValues.map { it.safeValue }.toTypedArray()))
 fun Query.endAt(document: DocumentSnapshot) = _endAt(document)
-fun Query.endAt(vararg fieldValues: Any) = _endAt(*(fieldValues.mapNotNull { it.safeValue }.toTypedArray()))
+fun Query.endAt(vararg fieldValues: Any) = _endAt(*(fieldValues.map { it.safeValue }.toTypedArray()))
 
 abstract class BaseWriteBatch {
     inline fun <reified T> set(documentRef: DocumentReference, data: T, encodeSettings: EncodeSettings = EncodeSettings(), merge: Boolean = false) =

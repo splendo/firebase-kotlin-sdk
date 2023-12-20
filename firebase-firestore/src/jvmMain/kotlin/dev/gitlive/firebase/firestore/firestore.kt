@@ -305,61 +305,77 @@ actual open class Query(open val android: com.google.firebase.firestore.Query) {
         awaitClose { listener.remove() }
     }
 
-    internal actual fun _where(field: String, equalTo: Any?) = Query(android.whereEqualTo(field, equalTo))
-    internal actual fun _where(path: FieldPath, equalTo: Any?) = Query(android.whereEqualTo(path.android, equalTo))
+    actual fun where(field: String, vararg clauses: WhereClause) = Query(
+        clauses.fold(android) { query, clause ->
+            when (clause) {
+                is WhereClause.ForNullableObject -> {
+                    val modifier: com.google.firebase.firestore.Query.(String, Any?) -> com.google.firebase.firestore.Query =
+                        when (clause) {
+                            is WhereClause.EqualTo -> com.google.firebase.firestore.Query::whereEqualTo
+                            is WhereClause.NotEqualTo -> com.google.firebase.firestore.Query::whereNotEqualTo
+                        }
+                    modifier.invoke(query, field, clause.safeValue)
+                }
 
-    internal actual fun _where(field: String, equalTo: DocumentReference) = Query(android.whereEqualTo(field, equalTo.android))
-    internal actual fun _where(path: FieldPath, equalTo: DocumentReference) = Query(android.whereEqualTo(path.android, equalTo.android))
+                is WhereClause.ForObject -> {
+                    val modifier: com.google.firebase.firestore.Query.(String, Any) -> com.google.firebase.firestore.Query =
+                        when (clause) {
+                            is WhereClause.LessThan -> com.google.firebase.firestore.Query::whereLessThan
+                            is WhereClause.GreaterThan -> com.google.firebase.firestore.Query::whereGreaterThan
+                            is WhereClause.LessThanOrEqualTo -> com.google.firebase.firestore.Query::whereLessThanOrEqualTo
+                            is WhereClause.GreaterThanOrEqualTo -> com.google.firebase.firestore.Query::whereGreaterThanOrEqualTo
+                            is WhereClause.ArrayContains -> com.google.firebase.firestore.Query::whereArrayContains
+                        }
+                    modifier.invoke(query, field, clause.safeValue)
+                }
 
-    internal actual fun _where(
-        field: String, lessThan: Any?, greaterThan: Any?, arrayContains: Any?, notEqualTo: Any?,
-        lessThanOrEqualTo: Any?, greaterThanOrEqualTo: Any?
-    ) = Query(
-        when {
-            lessThan != null -> android.whereLessThan(field, lessThan)
-            greaterThan != null -> android.whereGreaterThan(field, greaterThan)
-            arrayContains != null -> android.whereArrayContains(field, arrayContains)
-            notEqualTo != null -> android.whereNotEqualTo(field, notEqualTo)
-            lessThanOrEqualTo != null -> android.whereLessThanOrEqualTo(field, lessThanOrEqualTo)
-            greaterThanOrEqualTo != null -> android.whereGreaterThanOrEqualTo(field, greaterThanOrEqualTo)
-            else -> android
+                is WhereClause.ForArray -> {
+                    val modifier: com.google.firebase.firestore.Query.(String, List<Any>) -> com.google.firebase.firestore.Query =
+                        when (clause) {
+                            is WhereClause.InArray -> com.google.firebase.firestore.Query::whereIn
+                            is WhereClause.ArrayContainsAny -> com.google.firebase.firestore.Query::whereArrayContainsAny
+                            is WhereClause.NotInArray -> com.google.firebase.firestore.Query::whereNotIn
+                        }
+                    modifier.invoke(query, field, clause.safeValues)
+                }
+            }
         }
     )
 
-    internal actual fun _where(
-        path: FieldPath, lessThan: Any?, greaterThan: Any?, arrayContains: Any?, notEqualTo: Any?,
-        lessThanOrEqualTo: Any?, greaterThanOrEqualTo: Any?
-    ) = Query(
-        when {
-            lessThan != null -> android.whereLessThan(path.android, lessThan)
-            greaterThan != null -> android.whereGreaterThan(path.android, greaterThan)
-            arrayContains != null -> android.whereArrayContains(path.android, arrayContains)
-            notEqualTo != null -> android.whereNotEqualTo(path.android, notEqualTo)
-            lessThanOrEqualTo != null -> android.whereLessThanOrEqualTo(path.android, lessThanOrEqualTo)
-            greaterThanOrEqualTo != null -> android.whereGreaterThanOrEqualTo(path.android, greaterThanOrEqualTo)
-            else -> android
-        }
-    )
+    actual fun where(path: FieldPath, vararg clauses: WhereClause) = Query(
+        clauses.fold(android) { query, clause ->
+            when (clause) {
+                is WhereClause.ForNullableObject -> {
+                    val modifier: com.google.firebase.firestore.Query.(com.google.firebase.firestore.FieldPath, Any?) -> com.google.firebase.firestore.Query =
+                        when (clause) {
+                            is WhereClause.EqualTo -> com.google.firebase.firestore.Query::whereEqualTo
+                            is WhereClause.NotEqualTo -> com.google.firebase.firestore.Query::whereNotEqualTo
+                        }
+                    modifier.invoke(query, path.android, clause.safeValue)
+                }
 
-    internal actual fun _where(
-        field: String, inArray: List<Any>?, arrayContainsAny: List<Any>?, notInArray: List<Any>?
-    ) = Query(
-        when {
-            inArray != null -> android.whereIn(field, inArray)
-            arrayContainsAny != null -> android.whereArrayContainsAny(field, arrayContainsAny)
-            notInArray != null -> android.whereNotIn(field, notInArray)
-            else -> android
-        }
-    )
+                is WhereClause.ForObject -> {
+                    val modifier: com.google.firebase.firestore.Query.(com.google.firebase.firestore.FieldPath, Any) -> com.google.firebase.firestore.Query =
+                        when (clause) {
+                            is WhereClause.LessThan -> com.google.firebase.firestore.Query::whereLessThan
+                            is WhereClause.GreaterThan -> com.google.firebase.firestore.Query::whereGreaterThan
+                            is WhereClause.LessThanOrEqualTo -> com.google.firebase.firestore.Query::whereLessThanOrEqualTo
+                            is WhereClause.GreaterThanOrEqualTo -> com.google.firebase.firestore.Query::whereGreaterThanOrEqualTo
+                            is WhereClause.ArrayContains -> com.google.firebase.firestore.Query::whereArrayContains
+                        }
+                    modifier.invoke(query, path.android, clause.safeValue)
+                }
 
-    internal actual fun _where(
-        path: FieldPath, inArray: List<Any>?, arrayContainsAny: List<Any>?, notInArray: List<Any>?
-    ) = Query(
-        when {
-            inArray != null -> android.whereIn(path.android, inArray)
-            arrayContainsAny != null -> android.whereArrayContainsAny(path.android, arrayContainsAny)
-            notInArray != null -> android.whereNotIn(path.android, notInArray)
-            else -> android
+                is WhereClause.ForArray -> {
+                    val modifier: com.google.firebase.firestore.Query.(com.google.firebase.firestore.FieldPath, List<Any>) -> com.google.firebase.firestore.Query =
+                        when (clause) {
+                            is WhereClause.InArray -> com.google.firebase.firestore.Query::whereIn
+                            is WhereClause.ArrayContainsAny -> com.google.firebase.firestore.Query::whereArrayContainsAny
+                            is WhereClause.NotInArray -> com.google.firebase.firestore.Query::whereNotIn
+                        }
+                    modifier.invoke(query, path.android, clause.safeValues)
+                }
+            }
         }
     )
 
