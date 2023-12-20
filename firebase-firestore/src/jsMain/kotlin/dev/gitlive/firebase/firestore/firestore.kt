@@ -324,70 +324,38 @@ actual open class Query(open val js: JsQuery) {
 
     actual fun limit(limit: Number) = Query(query(js, jsLimit(limit)))
 
-    internal actual fun _where(field: String, equalTo: Any?) = rethrow { Query(query(js, jsWhere(field, "==", equalTo))) }
-    internal actual fun _where(path: FieldPath, equalTo: Any?) = rethrow { Query(query(js, jsWhere(path.js, "==", equalTo))) }
-
-    internal actual fun _where(field: String, equalTo: DocumentReference) = rethrow { Query(query(js, jsWhere(field, "==", equalTo.js))) }
-    internal actual fun _where(path: FieldPath, equalTo: DocumentReference) = rethrow { Query(query(js, jsWhere(path.js, "==", equalTo.js))) }
-
-    internal actual fun _where(
-        field: String, lessThan: Any?, greaterThan: Any?, arrayContains: Any?, notEqualTo: Any?,
-        lessThanOrEqualTo: Any?, greaterThanOrEqualTo: Any?
-    ) = rethrow {
-        Query(
-            when {
-                lessThan != null -> query(js, jsWhere(field, "<", lessThan))
-                greaterThan != null -> query(js, jsWhere(field, ">", greaterThan))
-                arrayContains != null -> query(js, jsWhere(field, "array-contains", arrayContains))
-                notEqualTo != null -> query(js, jsWhere(field, "!=", notEqualTo))
-                lessThanOrEqualTo != null -> query(js, jsWhere(field, "<=", lessThanOrEqualTo))
-                greaterThanOrEqualTo != null -> query(js, jsWhere(field, ">=", greaterThanOrEqualTo))
-                else -> js
+    internal actual fun where(field: String, vararg clauses: WhereClause) = Query(
+        clauses.fold(js) { query, clause ->
+            val value = when (clause) {
+                is WhereClause.ForNullableObject -> clause.safeValue
+                is WhereClause.ForObject -> clause.safeValue
+                is WhereClause.ForArray -> clause.safeValues.toTypedArray()
             }
-        )
-    }
-
-    internal actual fun _where(
-        path: FieldPath, lessThan: Any?, greaterThan: Any?, arrayContains: Any?, notEqualTo: Any?,
-        lessThanOrEqualTo: Any?, greaterThanOrEqualTo: Any?
-    ) = rethrow {
-        Query(
-            when {
-                lessThan != null -> query(js, jsWhere(path.js, "<", lessThan))
-                greaterThan != null -> query(js, jsWhere(path.js, ">", greaterThan))
-                arrayContains != null -> query(js, jsWhere(path.js, "array-contains", arrayContains))
-                notEqualTo != null -> query(js, jsWhere(path.js, "!=", notEqualTo))
-                lessThanOrEqualTo != null -> query(js, jsWhere(path.js, "<=", lessThanOrEqualTo))
-                greaterThanOrEqualTo != null -> query(js, jsWhere(path.js, ">=", greaterThanOrEqualTo))
-                else -> js
+            query(query, jsWhere(field, clause.filterOp, value))
+        }
+    )
+    internal actual fun where(path: FieldPath, vararg clauses: WhereClause) = Query(
+        clauses.fold(js) { query, clause ->
+            val value = when (clause) {
+                is WhereClause.ForNullableObject -> clause.safeValue
+                is WhereClause.ForObject -> clause.safeValue
+                is WhereClause.ForArray -> clause.safeValues.toTypedArray()
             }
-        )
-    }
+            query(query, jsWhere(path.js, clause.filterOp, value))
+        }
+    )
 
-    internal actual fun _where(
-        field: String, inArray: List<Any>?, arrayContainsAny: List<Any>?, notInArray: List<Any>?
-    ) = rethrow {
-        Query(
-            when {
-                inArray != null -> query(js, jsWhere(field, "in", inArray.toTypedArray()))
-                arrayContainsAny != null -> query(js, jsWhere(field, "array-contains-any", arrayContainsAny.toTypedArray()))
-                notInArray != null -> query(js, jsWhere(field, "not-in", notInArray.toTypedArray()))
-                else -> js
-            }
-        )
-    }
-
-    internal actual fun _where(
-        path: FieldPath, inArray: List<Any>?, arrayContainsAny: List<Any>?, notInArray: List<Any>?
-    ) = rethrow {
-        Query(
-            when {
-                inArray != null -> query(js, jsWhere(path.js, "in", inArray.toTypedArray()))
-                arrayContainsAny != null -> query(js, jsWhere(path.js, "array-contains-any", arrayContainsAny.toTypedArray()))
-                notInArray != null -> query(js, jsWhere(path.js, "not-in", notInArray.toTypedArray()))
-                else -> js
-            }
-        )
+    private val WhereClause.filterOp: String get() = when (this) {
+        is WhereClause.EqualTo -> "=="
+        is WhereClause.NotEqualTo -> "!="
+        is WhereClause.LessThan -> "<"
+        is WhereClause.LessThanOrEqualTo -> "<="
+        is WhereClause.GreaterThan -> ">"
+        is WhereClause.GreaterThanOrEqualTo -> ">="
+        is WhereClause.ArrayContains -> "array-contains"
+        is WhereClause.ArrayContainsAny -> "array-contains-any"
+        is WhereClause.InArray -> "in"
+        is WhereClause.NotInArray -> "not-in"
     }
 
     internal actual fun _orderBy(field: String, direction: Direction) = rethrow {

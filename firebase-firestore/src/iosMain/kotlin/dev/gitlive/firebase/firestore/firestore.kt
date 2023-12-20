@@ -311,61 +311,36 @@ actual open class Query(open val ios: FIRQuery) {
         awaitClose { listener.remove() }
     }
 
-    internal actual fun _where(field: String, equalTo: Any?) = Query(ios.queryWhereField(field, isEqualTo = equalTo!!))
-    internal actual fun _where(path: FieldPath, equalTo: Any?) = Query(ios.queryWhereFieldPath(path.ios, isEqualTo = equalTo!!))
-
-    internal actual fun _where(field: String, equalTo: DocumentReference) = Query(ios.queryWhereField(field, isEqualTo = equalTo.ios))
-    internal actual fun _where(path: FieldPath, equalTo: DocumentReference) = Query(ios.queryWhereFieldPath(path.ios, isEqualTo = equalTo.ios))
-
-    internal actual fun _where(
-        field: String, lessThan: Any?, greaterThan: Any?, arrayContains: Any?, notEqualTo: Any?,
-        lessThanOrEqualTo: Any?, greaterThanOrEqualTo: Any?
-    ) = Query(
-        when {
-            lessThan != null -> ios.queryWhereField(field, isLessThan = lessThan)
-            greaterThan != null -> ios.queryWhereField(field, isGreaterThan = greaterThan)
-            arrayContains != null -> ios.queryWhereField(field, arrayContains = arrayContains)
-            notEqualTo != null -> ios.queryWhereField(field, isNotEqualTo = notEqualTo)
-            lessThanOrEqualTo != null -> ios.queryWhereField(field, isLessThanOrEqualTo = lessThanOrEqualTo)
-            greaterThanOrEqualTo != null -> ios.queryWhereField(field, isGreaterThanOrEqualTo = greaterThanOrEqualTo)
-            else -> ios
+    internal actual fun where(field: String, vararg clauses: WhereClause) = Query(
+        clauses.fold(ios) { query, clause ->
+            when (clause) {
+                is WhereClause.EqualTo -> query.queryWhereField(field, isEqualTo = clause.safeValue ?: NSNull)
+                is WhereClause.NotEqualTo -> query.queryWhereField(field, isNotEqualTo = clause.safeValue ?: NSNull)
+                is WhereClause.LessThan -> query.queryWhereField(field, isLessThan = clause.safeValue)
+                is WhereClause.GreaterThan -> query.queryWhereField(field, isGreaterThan = clause.safeValue)
+                is WhereClause.LessThanOrEqualTo -> query.queryWhereField(field, isLessThanOrEqualTo = clause.safeValue)
+                is WhereClause.GreaterThanOrEqualTo -> query.queryWhereField(field, isGreaterThanOrEqualTo = clause.safeValue)
+                is WhereClause.ArrayContains -> query.queryWhereField(field, arrayContains = clause.safeValue)
+                is WhereClause.InArray -> query.queryWhereField(field, `in` = clause.safeValues)
+                is WhereClause.ArrayContainsAny -> query.queryWhereField(field, arrayContainsAny = clause.safeValues)
+                is WhereClause.NotInArray -> query.queryWhereField(field, notIn = clause.safeValues)
+            }
         }
     )
 
-    internal actual fun _where(
-        path: FieldPath, lessThan: Any?, greaterThan: Any?, arrayContains: Any?, notEqualTo: Any?,
-        lessThanOrEqualTo: Any?, greaterThanOrEqualTo: Any?
-    ) = Query(
-            when {
-                lessThan != null -> ios.queryWhereFieldPath(path.ios, isLessThan = lessThan)
-                greaterThan != null -> ios.queryWhereFieldPath(path.ios, isGreaterThan = greaterThan)
-                arrayContains != null -> ios.queryWhereFieldPath(path.ios, arrayContains = arrayContains)
-                notEqualTo != null -> ios.queryWhereFieldPath(path.ios, isNotEqualTo = notEqualTo)
-                lessThanOrEqualTo != null -> ios.queryWhereFieldPath(path.ios, isLessThanOrEqualTo = lessThanOrEqualTo)
-                greaterThanOrEqualTo != null -> ios.queryWhereFieldPath(path.ios, isGreaterThanOrEqualTo = greaterThanOrEqualTo)
-                else -> ios
-            }
-        )
-
-    internal actual fun _where(
-        field: String, inArray: List<Any>?, arrayContainsAny: List<Any>?, notInArray: List<Any>?
-    ) = Query(
-            when {
-                inArray != null -> ios.queryWhereField(field, `in` = inArray)
-                arrayContainsAny != null -> ios.queryWhereField(field, arrayContainsAny = arrayContainsAny)
-                notInArray != null -> ios.queryWhereField(field, notIn = notInArray)
-                else -> ios
-            }
-        )
-
-    internal actual fun _where(
-        path: FieldPath, inArray: List<Any>?, arrayContainsAny: List<Any>?, notInArray: List<Any>?
-    ) = Query(
-            when {
-                inArray != null -> ios.queryWhereFieldPath(path.ios, `in` = inArray)
-                arrayContainsAny != null -> ios.queryWhereFieldPath(path.ios, arrayContainsAny = arrayContainsAny)
-                notInArray != null -> ios.queryWhereFieldPath(path.ios, notIn = notInArray)
-                else -> ios
+    internal actual fun where(path: FieldPath, vararg clauses: WhereClause) = Query(
+        clauses.fold(ios) { query, clause ->
+            when (clause) {
+                is WhereClause.EqualTo -> query.queryWhereFieldPath(path.ios, isEqualTo = clause.safeValue ?: NSNull)
+                is WhereClause.NotEqualTo -> query.queryWhereFieldPath(path.ios, isNotEqualTo = clause.safeValue ?: NSNull)
+                is WhereClause.LessThan -> query.queryWhereFieldPath(path.ios, isLessThan = clause.safeValue)
+                is WhereClause.GreaterThan -> query.queryWhereFieldPath(path.ios, isGreaterThan = clause.safeValue)
+                is WhereClause.LessThanOrEqualTo -> query.queryWhereFieldPath(path.ios, isLessThanOrEqualTo = clause.safeValue)
+                is WhereClause.GreaterThanOrEqualTo -> query.queryWhereFieldPath(path.ios, isGreaterThanOrEqualTo = clause.safeValue)
+                is WhereClause.ArrayContains -> query.queryWhereFieldPath(path.ios, arrayContains = clause.safeValue)
+                is WhereClause.InArray -> query.queryWhereFieldPath(path.ios, `in` = clause.safeValues)
+                is WhereClause.ArrayContainsAny -> query.queryWhereFieldPath(path.ios, arrayContainsAny = clause.safeValues)
+                is WhereClause.NotInArray -> query.queryWhereFieldPath(path.ios, notIn = clause.safeValues)
             }
         )
 
