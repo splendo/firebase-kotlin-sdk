@@ -248,7 +248,7 @@ abstract class BaseDocumentReference {
         abstract fun setEncoded(encodedData: Any, setOptions: SetOptions): Deferred<Unit>
 
         inline fun <reified T> update(data: T, encodeSettings: EncodeSettings = EncodeSettings()) = updateEncoded(encode(data, encodeSettings)!!)
-        fun <T> update(strategy: SerializationStrategy<T>, data: T, encodeSettings: EncodeSettings = EncodeSettings()) = update(encode(strategy, data, encodeSettings))
+        fun <T> update(strategy: SerializationStrategy<T>, data: T, encodeSettings: EncodeSettings = EncodeSettings()) = updateEncoded(encode(strategy, data, encodeSettings)!!)
 
         @JvmName("updateFields")
         fun update(vararg fieldsAndValues: Pair<String, Any?>, encodeSettings: EncodeSettings = EncodeSettings()) = updateEncodedFieldsAndValues(encodeFieldAndValue(fieldsAndValues, encodeSettings).orEmpty())
