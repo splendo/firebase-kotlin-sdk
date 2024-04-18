@@ -120,7 +120,7 @@ actual data class NativeTransaction(val js: JsTransaction)
 val Transaction.js get() = native.js
 
 /** A class representing a platform specific Firebase DocumentReference. */
-actual typealias NativeDocumentReferenceType = JsDocumentReference
+actual typealias NativeDocumentReference = JsDocumentReference
 
 val DocumentReference.js get() = native.js
 

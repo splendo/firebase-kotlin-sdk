@@ -106,7 +106,7 @@ actual typealias NativeTransaction = FIRTransaction
 val Transaction.ios get() = native
 
 /** A class representing a platform specific Firebase DocumentReference. */
-actual typealias NativeDocumentReferenceType = FIRDocumentReference
+actual typealias NativeDocumentReference = FIRDocumentReference
 
 val DocumentReference.ios get() = native.ios
 

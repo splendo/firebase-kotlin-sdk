@@ -11,10 +11,10 @@ import kotlinx.serialization.SerializationException
  */
 object DocumentReferenceSerializer : KSerializer<DocumentReference> by SpecialValueSerializer(
     serialName = "DocumentReference",
-    toNativeValue = { it.native.nativeValue },
+    toNativeValue = { it.wrapper.native },
     fromNativeValue = { value ->
         when (value) {
-            is NativeDocumentReferenceType -> DocumentReference(NativeDocumentReference(value))
+            is NativeDocumentReference -> DocumentReference(NativeDocumentReferenceWrapper(value))
             else -> throw SerializationException("Cannot deserialize $value")
         }
     }

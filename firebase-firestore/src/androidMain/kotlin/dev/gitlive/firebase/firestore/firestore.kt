@@ -96,7 +96,7 @@ actual typealias NativeTransaction = com.google.firebase.firestore.Transaction
 val Transaction.android get() = native
 
 /** A class representing a platform specific Firebase DocumentReference. */
-actual typealias NativeDocumentReferenceType = com.google.firebase.firestore.DocumentReference
+actual typealias NativeDocumentReference = com.google.firebase.firestore.DocumentReference
 
 val DocumentReference.android get() = native.android
 

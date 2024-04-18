@@ -741,8 +741,8 @@ class FirebaseFirestoreTest {
             }
         )
         assertEquals("123", encoded["uid"])
-        assertEquals(doc.nativeValue, encoded["reference"])
-        assertEquals(doc.nativeValue, encoded["optionalReference"])
+        assertEquals(doc.native, encoded["reference"])
+        assertEquals(doc.native, encoded["optionalReference"])
     }
 
     @Test
@@ -761,8 +761,8 @@ class FirebaseFirestoreTest {
         val doc = firestore.document("a/b")
         val obj = mapOf(
             "uid" to "123",
-            "reference" to doc.nativeValue,
-            "optionalReference" to doc.nativeValue
+            "reference" to doc.native,
+            "optionalReference" to doc.native
         ).asEncoded()
         val decoded: TestDataWithDocumentReference = decode(obj)
         assertEquals("123", decoded.uid)

@@ -7,6 +7,6 @@ internal actual fun isSpecialValue(value: Any) = when(value) {
     is FIRFieldValue,
     is NativeGeoPoint,
     is NativeTimestamp,
-    is NativeDocumentReferenceType -> true
+    is NativeDocumentReference -> true
     else -> false
 }
