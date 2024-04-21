@@ -2,15 +2,15 @@ package dev.gitlive.firebase.firestore.internal
 
 import dev.gitlive.firebase.firestore.EncodedFieldPath
 import dev.gitlive.firebase.firestore.NativeCollectionReference
-import dev.gitlive.firebase.firestore.NativeDocumentReferenceType
+import dev.gitlive.firebase.firestore.NativeDocumentReference
 import dev.gitlive.firebase.firestore.NativeDocumentSnapshot
 import dev.gitlive.firebase.firestore.Source
 import dev.gitlive.firebase.internal.EncodedObject
 import kotlinx.coroutines.flow.Flow
 
 @PublishedApi
-internal expect class NativeDocumentReference(nativeValue: NativeDocumentReferenceType) {
-    val nativeValue: NativeDocumentReferenceType
+internal expect class NativeDocumentReferenceWrapper(native: NativeDocumentReference) {
+    val native: NativeDocumentReference
     val id: String
     val path: String
     val snapshots: Flow<NativeDocumentSnapshot>

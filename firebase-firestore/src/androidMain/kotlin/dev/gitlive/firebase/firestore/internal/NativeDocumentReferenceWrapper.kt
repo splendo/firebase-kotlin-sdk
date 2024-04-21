@@ -3,7 +3,7 @@ package dev.gitlive.firebase.firestore.internal
 import com.google.android.gms.tasks.TaskExecutors
 import com.google.firebase.firestore.MetadataChanges
 import dev.gitlive.firebase.firestore.EncodedFieldPath
-import dev.gitlive.firebase.firestore.NativeDocumentReferenceType
+import dev.gitlive.firebase.firestore.NativeDocumentReference
 import dev.gitlive.firebase.firestore.NativeDocumentSnapshot
 import dev.gitlive.firebase.firestore.Source
 import dev.gitlive.firebase.firestore.performUpdate
@@ -16,8 +16,8 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 @PublishedApi
-internal actual class NativeDocumentReference actual constructor(actual val nativeValue: NativeDocumentReferenceType) {
-    val android: NativeDocumentReferenceType by ::nativeValue
+internal actual class NativeDocumentReferenceWrapper actual constructor(actual val native: NativeDocumentReference) {
+    val android: NativeDocumentReference by ::native
     actual val id: String
         get() = android.id
 
@@ -68,9 +68,9 @@ internal actual class NativeDocumentReference actual constructor(actual val nati
     }
 
     override fun equals(other: Any?): Boolean =
-        this === other || other is NativeDocumentReference && nativeValue == other.nativeValue
-    override fun hashCode(): Int = nativeValue.hashCode()
-    override fun toString(): String = nativeValue.toString()
+        this === other || other is NativeDocumentReferenceWrapper && native == other.native
+    override fun hashCode(): Int = native.hashCode()
+    override fun toString(): String = native.toString()
 
     private fun addSnapshotListener(
         includeMetadataChanges: Boolean = false,

@@ -13,27 +13,25 @@ internal actual class NativeDocumentSnapshotWrapper actual internal constructor(
 
     constructor(js: DocumentSnapshot) : this(NativeDocumentSnapshot(js))
 
-    val js: DocumentSnapshot = native.js
-
-    actual val id get() = rethrow { js.id }
-    actual val reference get() = rethrow { NativeDocumentReference(js.ref) }
+    actual val id get() = rethrow { native.id }
+    actual val reference get() = rethrow { native.ref }
 
     actual fun getEncoded(field: String, serverTimestampBehavior: ServerTimestampBehavior): Any? = rethrow {
-        js.get(field, getTimestampsOptions(serverTimestampBehavior))
+        native.get(field, getTimestampsOptions(serverTimestampBehavior))
     }
 
     actual fun getEncoded(fieldPath: EncodedFieldPath, serverTimestampBehavior: ServerTimestampBehavior): Any? = rethrow {
-        js.get(fieldPath, getTimestampsOptions(serverTimestampBehavior))
+        native.get(fieldPath, getTimestampsOptions(serverTimestampBehavior))
     }
 
     actual fun encodedData(serverTimestampBehavior: ServerTimestampBehavior): Any? = rethrow {
-        js.data(getTimestampsOptions(serverTimestampBehavior))
+        native.data(getTimestampsOptions(serverTimestampBehavior))
     }
 
-    actual fun contains(field: String) = rethrow { js.get(field) != undefined }
-    actual fun contains(fieldPath: EncodedFieldPath) = rethrow { js.get(fieldPath) != undefined }
-    actual val exists get() = rethrow { js.exists() }
-    actual val metadata: SnapshotMetadata get() = SnapshotMetadata(js.metadata)
+    actual fun contains(field: String) = rethrow { native.get(field) != undefined }
+    actual fun contains(fieldPath: EncodedFieldPath) = rethrow { native.get(fieldPath) != undefined }
+    actual val exists get() = rethrow { native.exists() }
+    actual val metadata: SnapshotMetadata get() = SnapshotMetadata(native.metadata)
 
     fun getTimestampsOptions(serverTimestampBehavior: ServerTimestampBehavior) =
         json("serverTimestamps" to serverTimestampBehavior.name.lowercase())

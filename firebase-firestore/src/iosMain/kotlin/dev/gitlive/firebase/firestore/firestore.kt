@@ -37,8 +37,6 @@ val LocalCacheSettings.ios: FIRLocalCacheSettingsProtocol get() = when (this) {
 
 actual typealias NativeFirebaseFirestore = FIRFirestore
 
-val FirebaseFirestore.ios get() = native
-
 actual data class FirebaseFirestoreSettings(
     actual val sslEnabled: Boolean,
     actual val host: String,
@@ -99,24 +97,14 @@ actual fun firestoreSettings(
 
 actual typealias NativeWriteBatch = FIRWriteBatch
 
-val WriteBatch.ios get() = native
-
 actual typealias NativeTransaction = FIRTransaction
-
-val Transaction.ios get() = native
 
 /** A class representing a platform specific Firebase DocumentReference. */
 actual typealias NativeDocumentReference = FIRDocumentReference
 
-val DocumentReference.ios get() = native.ios
-
 actual typealias NativeQuery = FIRQuery
 
-val Query.ios get() = native
-
 actual typealias NativeCollectionReference = FIRCollectionReference
-
-val CollectionReference.ios get() = native
 
 actual class FirebaseFirestoreException(message: String, val code: FirestoreExceptionCode) : FirebaseException(message)
 
@@ -197,8 +185,6 @@ actual class DocumentChange(val ios: FIRDocumentChange) {
 }
 
 actual typealias NativeDocumentSnapshot = FIRDocumentSnapshot
-
-val DocumentSnapshot.ios get() = native
 
 actual class SnapshotMetadata(val ios: FIRSnapshotMetadata) {
     actual val hasPendingWrites: Boolean get() = ios.pendingWrites

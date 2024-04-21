@@ -6,18 +6,18 @@ import dev.gitlive.firebase.internal.EncodedObject
 import dev.gitlive.firebase.internal.ios
 
 @PublishedApi
-internal actual class NativeCollectionReferenceWrapper internal actual constructor(actual override val native: NativeCollectionReference) : NativeQueryWrapper(native) {
+internal actual class NativeCollectionReferenceWrapper internal actual constructor(native: NativeCollectionReference) : BaseNativeQueryWrapper<NativeCollectionReference>(native) {
 
     actual val path: String
         get() = native.path
 
-    actual val document get() = NativeDocumentReference(native.documentWithAutoID())
+    actual val document get() = native.documentWithAutoID()
 
-    actual val parent get() = native.parent?.let{ NativeDocumentReference(it) }
+    actual val parent get() = native.parent
 
     actual fun document(documentPath: String) =
-        NativeDocumentReference(native.documentWithPath(documentPath))
+        native.documentWithPath(documentPath)
 
     actual suspend fun addEncoded(data: EncodedObject) =
-        NativeDocumentReference(await { native.addDocumentWithData(data.ios, it) })
+        await { native.addDocumentWithData(data.ios, it) }
 }

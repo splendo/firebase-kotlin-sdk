@@ -10,9 +10,9 @@ import dev.gitlive.firebase.firestore.Source
 import kotlinx.coroutines.flow.Flow
 
 @PublishedApi
-internal expect open class NativeQueryWrapper internal constructor(native: NativeQuery) {
+internal expect abstract class BaseNativeQueryWrapper<Q : NativeQuery> internal constructor(native: Q) {
 
-    open val native: NativeQuery
+    val native: Q
 
     fun limit(limit: Number): NativeQuery
     val snapshots: Flow<QuerySnapshot>
@@ -34,3 +34,6 @@ internal expect open class NativeQueryWrapper internal constructor(native: Nativ
     fun endAt(document: NativeDocumentSnapshot): NativeQuery
     fun endAt(vararg fieldValues: Any): NativeQuery
 }
+
+@PublishedApi
+internal class NativeQueryWrapper internal constructor(native: NativeQuery) : BaseNativeQueryWrapper<NativeQuery>(native)

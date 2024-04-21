@@ -7,7 +7,7 @@ import dev.gitlive.firebase.firestore.Timestamp
 internal val Any.safeValue: Any get() = when (this) {
     is Timestamp -> nativeValue
     is GeoPoint -> nativeValue
-    is DocumentReference -> native.nativeValue
+    is DocumentReference -> native
     is Map<*, *> -> this.mapNotNull { (key, value) -> key?.let { it.safeValue to value?.safeValue } }
     is Collection<*> -> this.mapNotNull { it?.safeValue }
     else -> this

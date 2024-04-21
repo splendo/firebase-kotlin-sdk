@@ -89,27 +89,17 @@ actual fun firestoreSettings(
 
 actual typealias NativeWriteBatch = com.google.firebase.firestore.WriteBatch
 
-val WriteBatch.android get() = native
-
 actual typealias NativeTransaction = com.google.firebase.firestore.Transaction
-
-val Transaction.android get() = native
 
 /** A class representing a platform specific Firebase DocumentReference. */
 actual typealias NativeDocumentReference = com.google.firebase.firestore.DocumentReference
 
-val DocumentReference.android get() = native.android
-
 actual typealias NativeQuery = AndroidQuery
-
-val Query.android get() = native
 
 actual typealias Direction = com.google.firebase.firestore.Query.Direction
 actual typealias ChangeType = com.google.firebase.firestore.DocumentChange.Type
 
 actual typealias NativeCollectionReference = com.google.firebase.firestore.CollectionReference
-
-val CollectionReference.android get() = native
 
 actual typealias FirebaseFirestoreException = com.google.firebase.firestore.FirebaseFirestoreException
 
@@ -137,8 +127,6 @@ actual class DocumentChange(val android: com.google.firebase.firestore.DocumentC
 }
 
 actual typealias NativeDocumentSnapshot = com.google.firebase.firestore.DocumentSnapshot
-
-val DocumentSnapshot.android get() = native
 
 actual class SnapshotMetadata(val android: com.google.firebase.firestore.SnapshotMetadata) {
     actual val hasPendingWrites: Boolean get() = android.hasPendingWrites()

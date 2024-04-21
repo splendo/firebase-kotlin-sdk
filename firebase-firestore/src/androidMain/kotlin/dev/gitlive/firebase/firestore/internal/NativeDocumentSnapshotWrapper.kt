@@ -8,7 +8,7 @@ import dev.gitlive.firebase.firestore.SnapshotMetadata
 internal actual class NativeDocumentSnapshotWrapper actual internal constructor(actual val native: com.google.firebase.firestore.DocumentSnapshot) {
 
     actual val id get() = native.id
-    actual val reference get() = NativeDocumentReference(native.reference)
+    actual val reference get() = native.reference
 
     actual fun getEncoded(field: String, serverTimestampBehavior: ServerTimestampBehavior): Any? = native.get(field, serverTimestampBehavior.toAndroid())
     actual fun getEncoded(fieldPath: EncodedFieldPath, serverTimestampBehavior: ServerTimestampBehavior): Any? = native.get(fieldPath, serverTimestampBehavior.toAndroid())

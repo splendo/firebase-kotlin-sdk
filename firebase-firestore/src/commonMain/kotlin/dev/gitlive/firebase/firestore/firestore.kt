@@ -10,8 +10,10 @@ import dev.gitlive.firebase.internal.EncodedObject
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
 import dev.gitlive.firebase.FirebaseException
+import dev.gitlive.firebase.WithNative
+import dev.gitlive.firebase.firestore.internal.BaseNativeQueryWrapper
 import dev.gitlive.firebase.firestore.internal.NativeCollectionReferenceWrapper
-import dev.gitlive.firebase.firestore.internal.NativeDocumentReference
+import dev.gitlive.firebase.firestore.internal.NativeDocumentReferenceWrapper
 import dev.gitlive.firebase.firestore.internal.NativeDocumentSnapshotWrapper
 import dev.gitlive.firebase.firestore.internal.NativeFirebaseFirestoreWrapper
 import dev.gitlive.firebase.firestore.internal.NativeQueryWrapper
@@ -36,12 +38,12 @@ expect fun Firebase.firestore(app: FirebaseApp): FirebaseFirestore
 
 expect class NativeFirebaseFirestore
 
-class FirebaseFirestore internal constructor(private val wrapper: NativeFirebaseFirestoreWrapper) {
+class FirebaseFirestore internal constructor(private val wrapper: NativeFirebaseFirestoreWrapper) : WithNative<NativeFirebaseFirestore> {
 
     constructor(native: NativeFirebaseFirestore) : this(NativeFirebaseFirestoreWrapper(native))
 
     // Important to leave this as a get property since on JS it is initialized lazily
-    val native get() = wrapper.native
+    override val native get() = wrapper.native
     var settings: FirebaseFirestoreSettings
         get() = wrapper.settings
         set(value) {
@@ -112,7 +114,7 @@ expect fun firestoreSettings(settings: FirebaseFirestoreSettings? = null, builde
 
 expect class NativeTransaction
 
-data class Transaction internal constructor(@PublishedApi internal val nativeWrapper: NativeTransactionWrapper) {
+data class Transaction internal constructor(@PublishedApi internal val nativeWrapper: NativeTransactionWrapper) : WithNative<NativeTransaction> {
 
     constructor(native: NativeTransaction) : this(NativeTransactionWrapper(native))
 
@@ -190,9 +192,7 @@ data class Transaction internal constructor(@PublishedApi internal val nativeWra
 
 expect open class NativeQuery
 
-open class Query internal constructor(internal val nativeQuery: NativeQueryWrapper) {
-
-    constructor(native: NativeQuery) : this(NativeQueryWrapper(native))
+abstract class BaseQuery<Q : NativeQuery> internal constructor(internal val nativeQuery: BaseNativeQueryWrapper<Q>) : WithNative<Q> {
 
     override val native = nativeQuery.native
 
@@ -215,6 +215,10 @@ open class Query internal constructor(internal val nativeQuery: NativeQueryWrapp
     fun endBefore(vararg fieldValues: Any) = Query(nativeQuery.endBefore(*(fieldValues.map { it.safeValue }.toTypedArray())))
     fun endAt(document: DocumentSnapshot) = Query(nativeQuery.endAt(document.native))
     fun endAt(vararg fieldValues: Any) = Query(nativeQuery.endAt(*(fieldValues.map { it.safeValue }.toTypedArray())))
+}
+
+class Query internal constructor(nativeQuery: NativeQueryWrapper) : BaseQuery<NativeQuery>(nativeQuery) {
+    constructor(native: NativeQuery) : this(NativeQueryWrapper(native))
 }
 
 @Deprecated("Deprecated in favor of using a [FilterBuilder]", replaceWith = ReplaceWith("where { field equalTo equalTo }", "dev.gitlive.firebase.firestore"))
@@ -271,7 +275,7 @@ fun Query.where(path: FieldPath, inArray: List<Any>? = null, arrayContainsAny: L
 
 expect class NativeWriteBatch
 
-data class WriteBatch internal constructor(@PublishedApi internal val nativeWrapper: NativeWriteBatchWrapper) {
+data class WriteBatch internal constructor(@PublishedApi internal val nativeWrapper: NativeWriteBatchWrapper) : WithNative<NativeWriteBatch> {
 
     constructor(native: NativeWriteBatch) : this(NativeWriteBatchWrapper(native))
 
@@ -361,6 +365,8 @@ expect class NativeDocumentReference
 @Serializable(with = DocumentReferenceSerializer::class)
 data class DocumentReference internal constructor(@PublishedApi internal val wrapper: NativeDocumentReferenceWrapper) : WithNative<NativeDocumentReference> {
 
+    constructor(native: NativeDocumentReference) : this(NativeDocumentReferenceWrapper(native))
+
     override val native get() = wrapper.native
 
     val id: String get() = wrapper.id
@@ -369,8 +375,8 @@ data class DocumentReference internal constructor(@PublishedApi internal val wra
     val parent: CollectionReference get() = CollectionReference(wrapper.parent)
     fun snapshots(includeMetadataChanges: Boolean = false): Flow<DocumentSnapshot> = wrapper.snapshots(includeMetadataChanges).map(::DocumentSnapshot)
 
-    fun collection(collectionPath: String): CollectionReference = CollectionReference(native.collection(collectionPath))
-    suspend fun get(source: Source = Source.DEFAULT): DocumentSnapshot = DocumentSnapshot(native.get(source))
+    fun collection(collectionPath: String): CollectionReference = CollectionReference(wrapper.collection(collectionPath))
+    suspend fun get(source: Source = Source.DEFAULT): DocumentSnapshot = DocumentSnapshot(wrapper.get(source))
 
     @Deprecated("Deprecated. Use builder instead", replaceWith = ReplaceWith("set(data, merge) { this.encodeDefaults = encodeDefaults }"))
     suspend inline fun <reified T : Any> set(data: T, encodeDefaults: Boolean, merge: Boolean = false) = set(data, merge) {
@@ -439,7 +445,7 @@ data class DocumentReference internal constructor(@PublishedApi internal val wra
 
 expect class NativeCollectionReference : NativeQuery
 
-data class CollectionReference internal constructor(@PublishedApi internal val nativeWrapper: NativeCollectionReferenceWrapper) : Query(nativeWrapper) {
+data class CollectionReference internal constructor(@PublishedApi internal val nativeWrapper: NativeCollectionReferenceWrapper) : BaseQuery<NativeCollectionReference>(nativeWrapper) {
 
     constructor(native: NativeCollectionReference) : this(NativeCollectionReferenceWrapper(native))
 
@@ -522,7 +528,7 @@ expect class DocumentChange {
 
 expect class NativeDocumentSnapshot
 
-data class DocumentSnapshot internal constructor(@PublishedApi internal val nativeWrapper: NativeDocumentSnapshotWrapper) {
+data class DocumentSnapshot internal constructor(@PublishedApi internal val nativeWrapper: NativeDocumentSnapshotWrapper) : WithNative<NativeDocumentSnapshot> {
 
     constructor(native: NativeDocumentSnapshot) : this(NativeDocumentSnapshotWrapper(native))
 

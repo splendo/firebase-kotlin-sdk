@@ -26,20 +26,16 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlin.js.json
 
 @PublishedApi
-internal actual open class NativeQueryWrapper actual internal constructor(actual open val native: NativeQuery) {
+internal actual abstract class BaseNativeQueryWrapper<Q : NativeQuery> internal actual constructor(actual val native: Q) {
 
-    constructor(js: Query) : this(NativeQuery(js))
-
-    open val js: Query get() = native.js
-
-    actual suspend fun get(source: Source) =  rethrow { QuerySnapshot(js.get(source).await()) }
+    actual suspend fun get(source: Source) =  rethrow { QuerySnapshot(native.get(source).await()) }
 
     actual fun limit(limit: Number) = query(
-        js,
+        native,
         dev.gitlive.firebase.firestore.externals.limit(limit)
     ).wrapped
 
-    actual fun where(filter: Filter) = query(js, filter.toQueryConstraint()).wrapped
+    actual fun where(filter: Filter) = query(native, filter.toQueryConstraint()).wrapped
 
     private fun Filter.toQueryConstraint(): QueryConstraint = when (this) {
         is Filter.And -> and(*filters.map { it.toQueryConstraint() }.toTypedArray())
@@ -76,57 +72,57 @@ internal actual open class NativeQueryWrapper actual internal constructor(actual
     }
 
     actual fun orderBy(field: String, direction: Direction) = rethrow {
-        query(js, dev.gitlive.firebase.firestore.externals.orderBy(field, direction.jsString)).wrapped
+        query(native, dev.gitlive.firebase.firestore.externals.orderBy(field, direction.jsString)).wrapped
     }
 
     actual fun orderBy(field: EncodedFieldPath, direction: Direction) = rethrow {
-        query(js, dev.gitlive.firebase.firestore.externals.orderBy(field, direction.jsString)).wrapped
+        query(native, dev.gitlive.firebase.firestore.externals.orderBy(field, direction.jsString)).wrapped
     }
 
     actual fun startAfter(document: NativeDocumentSnapshot) = rethrow { query(
-        js,
-        dev.gitlive.firebase.firestore.externals.startAfter(document.js)
+        native,
+        dev.gitlive.firebase.firestore.externals.startAfter(document)
     ).wrapped }
 
     actual fun startAfter(vararg fieldValues: Any) = rethrow { query(
-        js,
+        native,
         dev.gitlive.firebase.firestore.externals.startAfter(*fieldValues)
     ).wrapped }
 
     actual fun startAt(document: NativeDocumentSnapshot) = rethrow { query(
-        js,
-        dev.gitlive.firebase.firestore.externals.startAt(document.js)
+        native,
+        dev.gitlive.firebase.firestore.externals.startAt(document)
     ).wrapped }
 
     actual fun startAt(vararg fieldValues: Any) = rethrow { query(
-        js,
+        native,
         dev.gitlive.firebase.firestore.externals.startAt(*fieldValues)
     ).wrapped }
 
     actual fun endBefore(document: NativeDocumentSnapshot) = rethrow { query(
-        js,
-        dev.gitlive.firebase.firestore.externals.endBefore(document.js)
+        native,
+        dev.gitlive.firebase.firestore.externals.endBefore(document)
     ).wrapped }
 
     actual fun endBefore(vararg fieldValues: Any) = rethrow { query(
-        js,
+        native,
         dev.gitlive.firebase.firestore.externals.endBefore(*fieldValues)
     ).wrapped }
 
     actual fun endAt(document: NativeDocumentSnapshot) = rethrow { query(
-        js,
-        dev.gitlive.firebase.firestore.externals.endAt(document.js)
+        native,
+        dev.gitlive.firebase.firestore.externals.endAt(document)
     ).wrapped }
 
     actual fun endAt(vararg fieldValues: Any) = rethrow { query(
-        js,
+        native,
         dev.gitlive.firebase.firestore.externals.endAt(*fieldValues)
     ).wrapped }
 
     actual val snapshots get() = callbackFlow<QuerySnapshot> {
         val unsubscribe = rethrow {
             onSnapshot(
-                js,
+                native,
                 { trySend(QuerySnapshot(it)) },
                 { close(errorToException(it)) }
             )
@@ -137,7 +133,7 @@ internal actual open class NativeQueryWrapper actual internal constructor(actual
     actual fun snapshots(includeMetadataChanges: Boolean) = callbackFlow<QuerySnapshot> {
         val unsubscribe = rethrow {
             onSnapshot(
-                js,
+                native,
                 json("includeMetadataChanges" to includeMetadataChanges),
                 { trySend(QuerySnapshot(it)) },
                 { close(errorToException(it)) }

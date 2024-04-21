@@ -1,25 +1,26 @@
 package dev.gitlive.firebase.firestore.internal
 
 import dev.gitlive.firebase.firestore.NativeCollectionReference
+import dev.gitlive.firebase.firestore.NativeDocumentReference
 import dev.gitlive.firebase.internal.EncodedObject
 import dev.gitlive.firebase.internal.android
 import kotlinx.coroutines.tasks.await
 
 @PublishedApi
-internal actual class NativeCollectionReferenceWrapper internal actual constructor(actual override val native: NativeCollectionReference) : NativeQueryWrapper(native) {
+internal actual class NativeCollectionReferenceWrapper internal actual constructor(native: NativeCollectionReference) : BaseNativeQueryWrapper<NativeCollectionReference>(native) {
 
     actual val path: String
         get() = native.path
 
     actual val document: NativeDocumentReference
-        get() = NativeDocumentReference(native.document())
+        get() = native.document()
 
     actual val parent: NativeDocumentReference?
-        get() = native.parent?.let{ NativeDocumentReference(it) }
+        get() = native.parent
 
     actual fun document(documentPath: String) =
-        NativeDocumentReference(native.document(documentPath))
+        native.document(documentPath)
 
     actual suspend fun addEncoded(data: EncodedObject) =
-        NativeDocumentReference(native.add(data.android).await())
+        native.add(data.android).await()
 }

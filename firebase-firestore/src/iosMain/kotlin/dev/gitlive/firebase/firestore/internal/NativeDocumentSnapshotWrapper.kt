@@ -12,7 +12,7 @@ internal actual class NativeDocumentSnapshotWrapper actual constructor(actual va
 
     actual val id get() = native.documentID
 
-    actual val reference get() = NativeDocumentReference(native.reference)
+    actual val reference get() = native.reference
 
     actual fun getEncoded(field: String, serverTimestampBehavior: ServerTimestampBehavior): Any? =
         native.valueForField(field, serverTimestampBehavior.toIos())?.takeIf { it !is NSNull }

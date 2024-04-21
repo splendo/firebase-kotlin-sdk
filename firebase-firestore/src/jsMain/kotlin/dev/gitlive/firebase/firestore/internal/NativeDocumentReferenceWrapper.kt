@@ -2,7 +2,7 @@ package dev.gitlive.firebase.firestore.internal
 
 import dev.gitlive.firebase.firestore.EncodedFieldPath
 import dev.gitlive.firebase.firestore.NativeCollectionReference
-import dev.gitlive.firebase.firestore.NativeDocumentReferenceType
+import dev.gitlive.firebase.firestore.NativeDocumentReference
 import dev.gitlive.firebase.firestore.NativeDocumentSnapshot
 import dev.gitlive.firebase.firestore.Source
 import dev.gitlive.firebase.firestore.errorToException
@@ -25,22 +25,21 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlin.js.json
 
 @PublishedApi
-internal actual class NativeDocumentReference actual constructor(actual val nativeValue: NativeDocumentReferenceType) {
-    val js: NativeDocumentReferenceType = nativeValue
+internal actual class NativeDocumentReferenceWrapper actual constructor(actual val native: NativeDocumentReference) {
 
     actual val id: String
-        get() = rethrow { js.id }
+        get() = rethrow { native.id }
 
     actual val path: String
-        get() = rethrow { js.path }
+        get() = rethrow { native.path }
 
     actual val parent: NativeCollectionReferenceWrapper
-        get() = rethrow { NativeCollectionReferenceWrapper(js.parent) }
+        get() = rethrow { NativeCollectionReferenceWrapper(native.parent) }
 
     actual fun collection(collectionPath: String) = rethrow {
         NativeCollectionReference(
             dev.gitlive.firebase.firestore.externals.collection(
-                js,
+                native,
                 collectionPath
             )
         )
@@ -48,7 +47,7 @@ internal actual class NativeDocumentReference actual constructor(actual val nati
 
     actual suspend fun get(source: Source) = rethrow {
         NativeDocumentSnapshot(
-            js.get(source).await()
+            native.get(source).await()
         )
     }
 
@@ -56,7 +55,7 @@ internal actual class NativeDocumentReference actual constructor(actual val nati
 
     actual fun snapshots(includeMetadataChanges: Boolean) = callbackFlow<NativeDocumentSnapshot> {
         val unsubscribe = onSnapshot(
-            js,
+            native,
             json("includeMetadataChanges" to includeMetadataChanges),
             { trySend(NativeDocumentSnapshot(it)) },
             { close(errorToException(it)) }
@@ -65,11 +64,11 @@ internal actual class NativeDocumentReference actual constructor(actual val nati
     }
 
     actual suspend fun setEncoded(encodedData: EncodedObject, setOptions: SetOptions) = rethrow {
-        setDoc(js, encodedData.js, setOptions.js).await()
+        setDoc(native, encodedData.js, setOptions.js).await()
     }
 
     actual suspend fun updateEncoded(encodedData: EncodedObject) = rethrow { updateDoc(
-        js,
+        native,
         encodedData.js
     ).await() }
 
@@ -77,7 +76,7 @@ internal actual class NativeDocumentReference actual constructor(actual val nati
         rethrow {
             encodedFieldsAndValues.takeUnless { encodedFieldsAndValues.isEmpty() }
                 ?.performUpdate { field, value, moreFieldsAndValues ->
-                    updateDoc(js, field, value, *moreFieldsAndValues)
+                    updateDoc(native, field, value, *moreFieldsAndValues)
                 }
                 ?.await()
         }
@@ -87,23 +86,23 @@ internal actual class NativeDocumentReference actual constructor(actual val nati
         rethrow {
             encodedFieldsAndValues.takeUnless { encodedFieldsAndValues.isEmpty() }
                 ?.performUpdate { field, value, moreFieldsAndValues ->
-                    updateDoc(js, field, value, *moreFieldsAndValues)
+                    updateDoc(native, field, value, *moreFieldsAndValues)
                 }?.await()
         }
     }
 
-    actual suspend fun delete() = rethrow { deleteDoc(js).await() }
+    actual suspend fun delete() = rethrow { deleteDoc(native).await() }
 
     override fun equals(other: Any?): Boolean =
-        this === other || other is NativeDocumentReference && refEqual(
-            nativeValue,
-            other.nativeValue
+        this === other || other is NativeDocumentReferenceWrapper && refEqual(
+            native,
+            other.native
         )
-    override fun hashCode(): Int = nativeValue.hashCode()
+    override fun hashCode(): Int = native.hashCode()
     override fun toString(): String = "DocumentReference(path=$path)"
 }
 
-private fun NativeDocumentReferenceType.get(source: Source) = when (source) {
+private fun NativeDocumentReference.get(source: Source) = when (source) {
     Source.DEFAULT -> getDoc(this)
     Source.CACHE -> getDocFromCache(this)
     Source.SERVER -> getDocFromServer(this)

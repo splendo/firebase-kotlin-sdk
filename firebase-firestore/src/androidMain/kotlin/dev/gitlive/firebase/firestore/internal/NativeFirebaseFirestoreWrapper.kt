@@ -75,7 +75,7 @@ internal actual class NativeFirebaseFirestoreWrapper actual constructor(actual v
     actual fun collectionGroup(collectionId: String) = native.collectionGroup(collectionId)
 
     actual fun document(documentPath: String) =
-        NativeDocumentReference(native.document(documentPath))
+        native.document(documentPath)
 
     actual fun batch() = native.batch()
 

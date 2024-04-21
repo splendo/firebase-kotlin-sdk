@@ -1,7 +1,7 @@
 package dev.gitlive.firebase.firestore.internal
 
 import dev.gitlive.firebase.firestore.EncodedFieldPath
-import dev.gitlive.firebase.firestore.NativeDocumentReferenceType
+import dev.gitlive.firebase.firestore.NativeDocumentReference
 import dev.gitlive.firebase.firestore.NativeDocumentSnapshot
 import dev.gitlive.firebase.firestore.Source
 import dev.gitlive.firebase.firestore.await
@@ -13,7 +13,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 
 @PublishedApi
-internal actual class NativeDocumentReference actual constructor(actual val nativeValue: NativeDocumentReferenceType) {
+internal actual class NativeDocumentReferenceWrapper actual constructor(actual val native: NativeDocumentReference) {
 
     actual fun snapshots(includeMetadataChanges: Boolean) = callbackFlow {
         val listener =
@@ -24,7 +24,7 @@ internal actual class NativeDocumentReference actual constructor(actual val nati
         awaitClose { listener.remove() }
     }
 
-    val ios: NativeDocumentReferenceType by ::nativeValue
+    val ios: NativeDocumentReference by ::native
 
     actual val id: String
         get() = ios.documentID
@@ -79,7 +79,7 @@ internal actual class NativeDocumentReference actual constructor(actual val nati
     }
 
     override fun equals(other: Any?): Boolean =
-        this === other || other is NativeDocumentReference && nativeValue == other.nativeValue
-    override fun hashCode(): Int = nativeValue.hashCode()
-    override fun toString(): String = nativeValue.toString()
+        this === other || other is NativeDocumentReferenceWrapper && native == other.native
+    override fun hashCode(): Int = native.hashCode()
+    override fun toString(): String = native.toString()
 }

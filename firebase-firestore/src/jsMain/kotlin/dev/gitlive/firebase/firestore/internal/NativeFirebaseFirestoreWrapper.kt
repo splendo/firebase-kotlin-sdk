@@ -21,7 +21,7 @@ import kotlinx.coroutines.promise
 
 internal actual class NativeFirebaseFirestoreWrapper internal constructor(
     private val createNative: NativeFirebaseFirestoreWrapper.() -> NativeFirebaseFirestore
-){
+) {
 
     internal actual constructor(native: NativeFirebaseFirestore) : this({ native })
     internal constructor(app: FirebaseApp) : this(
@@ -54,12 +54,11 @@ internal actual class NativeFirebaseFirestoreWrapper internal constructor(
         createNative()
     }
     actual val native: NativeFirebaseFirestore by lazyNative
-    private val js get() = native.js
 
     actual fun collection(collectionPath: String) = rethrow {
         NativeCollectionReference(
             dev.gitlive.firebase.firestore.externals.collection(
-                js,
+                native,
                 collectionPath
             )
         )
@@ -68,33 +67,31 @@ internal actual class NativeFirebaseFirestoreWrapper internal constructor(
     actual fun collectionGroup(collectionId: String) = rethrow {
         NativeQuery(
             dev.gitlive.firebase.firestore.externals.collectionGroup(
-                js,
+                native,
                 collectionId
             )
         )
     }
 
     actual fun document(documentPath: String) = rethrow {
-        NativeDocumentReference(
-            doc(
-                js,
-                documentPath
-            )
+        doc(
+            native,
+            documentPath
         )
     }
 
-    actual fun batch() = rethrow { NativeWriteBatch(writeBatch(js)) }
+    actual fun batch() = rethrow { NativeWriteBatch(writeBatch(native)) }
 
     actual fun setLoggingEnabled(loggingEnabled: Boolean) =
         rethrow { setLogLevel(if (loggingEnabled) "error" else "silent") }
 
     actual suspend fun <T> runTransaction(func: suspend NativeTransaction.() -> T) =
         rethrow { dev.gitlive.firebase.firestore.externals.runTransaction(
-            js,
+            native,
             { GlobalScope.promise { NativeTransaction(it).func() } }).await() }
 
     actual suspend fun clearPersistence() =
-        rethrow { clearIndexedDbPersistence(js).await() }
+        rethrow { clearIndexedDbPersistence(native).await() }
 
     actual fun useEmulator(host: String, port: Int) = rethrow {
         settings = firestoreSettings(settings) {
@@ -104,10 +101,10 @@ internal actual class NativeFirebaseFirestoreWrapper internal constructor(
     }
 
     actual suspend fun disableNetwork() {
-        rethrow { dev.gitlive.firebase.firestore.externals.disableNetwork(js).await() }
+        rethrow { dev.gitlive.firebase.firestore.externals.disableNetwork(native).await() }
     }
 
     actual suspend fun enableNetwork() {
-        rethrow { dev.gitlive.firebase.firestore.externals.enableNetwork(js).await() }
+        rethrow { dev.gitlive.firebase.firestore.externals.enableNetwork(native).await() }
     }
 }

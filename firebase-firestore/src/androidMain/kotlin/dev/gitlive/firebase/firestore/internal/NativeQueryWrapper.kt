@@ -3,11 +3,11 @@ package dev.gitlive.firebase.firestore.internal
 import com.google.android.gms.tasks.TaskExecutors
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.MetadataChanges
-import com.google.firebase.firestore.Query
 import dev.gitlive.firebase.firestore.Direction
 import dev.gitlive.firebase.firestore.EncodedFieldPath
 import dev.gitlive.firebase.firestore.Filter
 import dev.gitlive.firebase.firestore.NativeDocumentSnapshot
+import dev.gitlive.firebase.firestore.NativeQuery
 import dev.gitlive.firebase.firestore.QuerySnapshot
 import dev.gitlive.firebase.firestore.Source
 import dev.gitlive.firebase.firestore.WhereConstraint
@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 @PublishedApi
-internal actual open class NativeQueryWrapper actual internal constructor(actual open val native: Query) {
+internal actual abstract class BaseNativeQueryWrapper<Q : NativeQuery> internal actual constructor(actual val native: Q) {
 
     actual fun limit(limit: Number) = native.limit(limit.toLong())
 

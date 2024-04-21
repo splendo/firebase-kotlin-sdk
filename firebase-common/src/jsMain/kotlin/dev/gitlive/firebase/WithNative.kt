@@ -1,6 +1,6 @@
 package dev.gitlive.firebase
 
-actual interface WithNative<T> {
-    actual val native: T
-    val js: T get() = native
+actual interface WithNative<N> {
+    actual val native: N
+    val js get() = native
 }

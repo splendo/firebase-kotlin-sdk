@@ -10,29 +10,25 @@ import dev.gitlive.firebase.internal.js
 import kotlinx.coroutines.await
 
 @PublishedApi
-internal actual class NativeCollectionReferenceWrapper internal actual constructor(actual override val native: NativeCollectionReference) : NativeQueryWrapper(native) {
+internal actual class NativeCollectionReferenceWrapper internal actual constructor(native: NativeCollectionReference) : BaseNativeQueryWrapper<NativeCollectionReference>(native) {
 
     constructor(js: CollectionReference) : this(NativeCollectionReference(js))
 
-    override val js: CollectionReference = native.js
-
     actual val path: String
-        get() =  rethrow { js.path }
+        get() =  rethrow { native.path }
 
-    actual val document get() = rethrow { NativeDocumentReference(doc(js)) }
+    actual val document get() = rethrow { doc(native) }
 
-    actual val parent get() = rethrow { js.parent?.let{ NativeDocumentReference(it) } }
+    actual val parent get() = rethrow { native.parent }
 
     actual fun document(documentPath: String) = rethrow {
-        NativeDocumentReference(
-            doc(
-                js,
-                documentPath
-            )
+        doc(
+            native,
+            documentPath
         )
     }
 
     actual suspend fun addEncoded(data: EncodedObject) = rethrow {
-        NativeDocumentReference(addDoc(js, data.js).await())
+        addDoc(native, data.js).await()
     }
 }

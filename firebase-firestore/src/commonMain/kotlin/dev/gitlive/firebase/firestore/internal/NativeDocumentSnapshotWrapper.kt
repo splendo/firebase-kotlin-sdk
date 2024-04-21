@@ -1,6 +1,7 @@
 package dev.gitlive.firebase.firestore.internal
 
 import dev.gitlive.firebase.firestore.EncodedFieldPath
+import dev.gitlive.firebase.firestore.NativeDocumentReference
 import dev.gitlive.firebase.firestore.NativeDocumentSnapshot
 import dev.gitlive.firebase.firestore.ServerTimestampBehavior
 import dev.gitlive.firebase.firestore.SnapshotMetadata

@@ -44,9 +44,7 @@ actual val Firebase.firestore get() =
 actual fun Firebase.firestore(app: FirebaseApp) =
     rethrow { FirebaseFirestore(NativeFirebaseFirestoreWrapper(app.js)) }
 
-actual data class NativeFirebaseFirestore(val js: JsFirestore)
-
-val FirebaseFirestore.js: JsFirestore get() = native.js
+actual class NativeFirebaseFirestore(js: JsFirestore) : JsFirestore by js
 
 actual data class FirebaseFirestoreSettings(
     actual val sslEnabled: Boolean,
@@ -111,27 +109,17 @@ actual fun firestoreSettings(
     }
 }.apply(builder).build()
 
-actual data class NativeWriteBatch(val js: JsWriteBatch)
+actual class NativeWriteBatch(js: JsWriteBatch) : JsWriteBatch by js
 
-val WriteBatch.js get() = native.js
-
-actual data class NativeTransaction(val js: JsTransaction)
-
-val Transaction.js get() = native.js
+actual class NativeTransaction(js: JsTransaction) : JsTransaction by js
 
 /** A class representing a platform specific Firebase DocumentReference. */
 actual typealias NativeDocumentReference = JsDocumentReference
 
-val DocumentReference.js get() = native.js
-
-actual open class NativeQuery(open val js: JsQuery)
+actual open class NativeQuery(js: JsQuery) : JsQuery by js
 internal val JsQuery.wrapped get() = NativeQuery(this)
 
-val Query.js get() = native.js
-
-actual data class NativeCollectionReference(override val js: JsCollectionReference) : NativeQuery(js)
-
-val CollectionReference.js get() = native.js
+actual class NativeCollectionReference(js: JsCollectionReference) : NativeQuery(js), JsCollectionReference by js
 
 actual class FirebaseFirestoreException(cause: Throwable, val code: FirestoreExceptionCode) : FirebaseException(code.toString(), cause)
 
@@ -157,9 +145,7 @@ actual class DocumentChange(val js: JsDocumentChange) {
         get() = ChangeType.values().first { it.jsString == js.type }
 }
 
-actual data class NativeDocumentSnapshot(val js: JsDocumentSnapshot)
-
-val DocumentSnapshot.js get() = native.js
+actual class NativeDocumentSnapshot(js: JsDocumentSnapshot) : JsDocumentSnapshot by js
 
 actual class SnapshotMetadata(val js: JsSnapshotMetadata) {
     actual val hasPendingWrites: Boolean get() = js.hasPendingWrites

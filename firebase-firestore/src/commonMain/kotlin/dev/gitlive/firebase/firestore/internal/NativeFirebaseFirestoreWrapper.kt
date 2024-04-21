@@ -2,6 +2,7 @@ package dev.gitlive.firebase.firestore.internal
 
 import dev.gitlive.firebase.firestore.FirebaseFirestoreSettings
 import dev.gitlive.firebase.firestore.NativeCollectionReference
+import dev.gitlive.firebase.firestore.NativeDocumentReference
 import dev.gitlive.firebase.firestore.NativeFirebaseFirestore
 import dev.gitlive.firebase.firestore.NativeQuery
 import dev.gitlive.firebase.firestore.NativeTransaction
