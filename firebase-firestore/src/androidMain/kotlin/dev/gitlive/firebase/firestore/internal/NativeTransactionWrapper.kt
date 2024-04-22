@@ -4,7 +4,6 @@ import dev.gitlive.firebase.android
 import dev.gitlive.firebase.firestore.DocumentReference
 import dev.gitlive.firebase.firestore.EncodedFieldPath
 import dev.gitlive.firebase.firestore.NativeTransaction
-import dev.gitlive.firebase.firestore.android
 import dev.gitlive.firebase.firestore.performUpdate
 import dev.gitlive.firebase.internal.EncodedObject
 import dev.gitlive.firebase.internal.android

@@ -217,6 +217,7 @@ abstract class BaseQuery internal constructor(internal val nativeQuery: BaseNati
 
 class Query internal constructor(nativeQuery: NativeQueryWrapper) : BaseQuery(nativeQuery), WithNative<NativeQuery> {
     constructor(native: NativeQuery) : this(NativeQueryWrapper(native))
+    constructor(native: NativeCollectionReference) : this(native.asNativeQuery())
 
     override val native: NativeQuery = nativeQuery.native
 }
