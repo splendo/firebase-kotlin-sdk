@@ -13,25 +13,27 @@ internal actual class NativeDocumentSnapshotWrapper actual internal constructor(
 
     constructor(js: DocumentSnapshot) : this(NativeDocumentSnapshot(js))
 
-    actual val id get() = rethrow { native.id }
-    actual val reference get() = rethrow { native.ref }
+    private val js = native.js
+
+    actual val id get() = rethrow { js.id }
+    actual val reference get() = rethrow { js.ref }
 
     actual fun getEncoded(field: String, serverTimestampBehavior: ServerTimestampBehavior): Any? = rethrow {
-        native.get(field, getTimestampsOptions(serverTimestampBehavior))
+        js.get(field, getTimestampsOptions(serverTimestampBehavior))
     }
 
     actual fun getEncoded(fieldPath: EncodedFieldPath, serverTimestampBehavior: ServerTimestampBehavior): Any? = rethrow {
-        native.get(fieldPath, getTimestampsOptions(serverTimestampBehavior))
+        js.get(fieldPath, getTimestampsOptions(serverTimestampBehavior))
     }
 
     actual fun encodedData(serverTimestampBehavior: ServerTimestampBehavior): Any? = rethrow {
-        native.data(getTimestampsOptions(serverTimestampBehavior))
+        js.data(getTimestampsOptions(serverTimestampBehavior))
     }
 
-    actual fun contains(field: String) = rethrow { native.get(field) != undefined }
-    actual fun contains(fieldPath: EncodedFieldPath) = rethrow { native.get(fieldPath) != undefined }
-    actual val exists get() = rethrow { native.exists() }
-    actual val metadata: SnapshotMetadata get() = SnapshotMetadata(native.metadata)
+    actual fun contains(field: String) = rethrow { js.get(field) != undefined }
+    actual fun contains(fieldPath: EncodedFieldPath) = rethrow { js.get(fieldPath) != undefined }
+    actual val exists get() = rethrow { js.exists() }
+    actual val metadata: SnapshotMetadata get() = SnapshotMetadata(js.metadata)
 
     fun getTimestampsOptions(serverTimestampBehavior: ServerTimestampBehavior) =
         json("serverTimestamps" to serverTimestampBehavior.name.lowercase())

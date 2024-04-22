@@ -105,6 +105,7 @@ actual typealias NativeDocumentReference = FIRDocumentReference
 actual typealias NativeQuery = FIRQuery
 
 actual typealias NativeCollectionReference = FIRCollectionReference
+actual fun NativeCollectionReference.asNativeQuery(): NativeQuery = this
 
 actual class FirebaseFirestoreException(message: String, val code: FirestoreExceptionCode) : FirebaseException(message)
 

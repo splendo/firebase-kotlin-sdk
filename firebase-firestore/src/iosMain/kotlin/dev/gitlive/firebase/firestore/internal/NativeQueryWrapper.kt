@@ -16,15 +16,15 @@ import kotlinx.coroutines.flow.callbackFlow
 import platform.Foundation.NSNull
 
 @PublishedApi
-internal actual abstract class BaseNativeQueryWrapper<Q : NativeQuery> internal actual constructor(actual val native: Q) {
+internal actual abstract class BaseNativeQueryWrapper internal actual constructor(actual val nativeQuery: NativeQuery) {
 
-    actual fun limit(limit: Number) = native.queryLimitedTo(limit.toLong())
+    actual fun limit(limit: Number) = nativeQuery.queryLimitedTo(limit.toLong())
 
     actual suspend fun get(source: Source) =
-        QuerySnapshot(awaitResult { native.getDocumentsWithSource(source.toIosSource(), it) })
+        QuerySnapshot(awaitResult { nativeQuery.getDocumentsWithSource(source.toIosSource(), it) })
 
     actual val snapshots get() = callbackFlow<QuerySnapshot> {
-        val listener = native.addSnapshotListener { snapshot, error ->
+        val listener = nativeQuery.addSnapshotListener { snapshot, error ->
             snapshot?.let { trySend(QuerySnapshot(snapshot)) }
             error?.let { close(error.toException()) }
         }
@@ -33,14 +33,14 @@ internal actual abstract class BaseNativeQueryWrapper<Q : NativeQuery> internal 
 
     actual fun snapshots(includeMetadataChanges: Boolean) = callbackFlow<QuerySnapshot> {
         val listener =
-            native.addSnapshotListenerWithIncludeMetadataChanges(includeMetadataChanges) { snapshot, error ->
+            nativeQuery.addSnapshotListenerWithIncludeMetadataChanges(includeMetadataChanges) { snapshot, error ->
                 snapshot?.let { trySend(QuerySnapshot(snapshot)) }
                 error?.let { close(error.toException()) }
             }
         awaitClose { listener.remove() }
     }
 
-    actual fun where(filter: Filter) = native.queryWhereFilter(filter.toFIRFilter())
+    actual fun where(filter: Filter) = nativeQuery.queryWhereFilter(filter.toFIRFilter())
 
     private fun Filter.toFIRFilter(): FIRFilter = when (this) {
         is Filter.And -> FIRFilter.andFilterWithFilters(filters.map { it.toFIRFilter() })
@@ -71,16 +71,16 @@ internal actual abstract class BaseNativeQueryWrapper<Q : NativeQuery> internal 
         }
     }
 
-    actual fun orderBy(field: String, direction: Direction) = native.queryOrderedByField(field, direction == Direction.DESCENDING)
-    actual fun orderBy(field: EncodedFieldPath, direction: Direction) = native.queryOrderedByFieldPath(field, direction == Direction.DESCENDING)
+    actual fun orderBy(field: String, direction: Direction) = nativeQuery.queryOrderedByField(field, direction == Direction.DESCENDING)
+    actual fun orderBy(field: EncodedFieldPath, direction: Direction) = nativeQuery.queryOrderedByFieldPath(field, direction == Direction.DESCENDING)
 
-    actual fun startAfter(document: NativeDocumentSnapshot) = native.queryStartingAfterDocument(document)
-    actual fun startAfter(vararg fieldValues: Any) = native.queryStartingAfterValues(fieldValues.asList())
-    actual fun startAt(document: NativeDocumentSnapshot) = native.queryStartingAtDocument(document)
-    actual fun startAt(vararg fieldValues: Any) = native.queryStartingAtValues(fieldValues.asList())
+    actual fun startAfter(document: NativeDocumentSnapshot) = nativeQuery.queryStartingAfterDocument(document)
+    actual fun startAfter(vararg fieldValues: Any) = nativeQuery.queryStartingAfterValues(fieldValues.asList())
+    actual fun startAt(document: NativeDocumentSnapshot) = nativeQuery.queryStartingAtDocument(document)
+    actual fun startAt(vararg fieldValues: Any) = nativeQuery.queryStartingAtValues(fieldValues.asList())
 
-    actual fun endBefore(document: NativeDocumentSnapshot) = native.queryEndingBeforeDocument(document)
-    actual fun endBefore(vararg fieldValues: Any) = native.queryEndingBeforeValues(fieldValues.asList())
-    actual fun endAt(document: NativeDocumentSnapshot) = native.queryEndingAtDocument(document)
-    actual fun endAt(vararg fieldValues: Any) = native.queryEndingAtValues(fieldValues.asList())
+    actual fun endBefore(document: NativeDocumentSnapshot) = nativeQuery.queryEndingBeforeDocument(document)
+    actual fun endBefore(vararg fieldValues: Any) = nativeQuery.queryEndingBeforeValues(fieldValues.asList())
+    actual fun endAt(document: NativeDocumentSnapshot) = nativeQuery.queryEndingAtDocument(document)
+    actual fun endAt(vararg fieldValues: Any) = nativeQuery.queryEndingAtValues(fieldValues.asList())
 }

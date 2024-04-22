@@ -1,5 +1,5 @@
 package dev.gitlive.firebase
 
-expect interface WithNative<N> {
+interface WithNative<N> {
     val native: N
 }

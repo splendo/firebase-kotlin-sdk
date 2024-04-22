@@ -7,6 +7,7 @@ import dev.gitlive.firebase.firestore.await
 import dev.gitlive.firebase.firestore.ios
 import dev.gitlive.firebase.internal.EncodedObject
 import dev.gitlive.firebase.internal.ios
+import dev.gitlive.firebase.ios
 
 @PublishedApi
 internal actual class NativeWriteBatchWrapper actual constructor(actual val native: NativeWriteBatch) {

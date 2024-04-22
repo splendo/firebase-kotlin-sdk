@@ -6,7 +6,7 @@ import dev.gitlive.firebase.internal.EncodedObject
 import dev.gitlive.firebase.internal.ios
 
 @PublishedApi
-internal actual class NativeCollectionReferenceWrapper internal actual constructor(native: NativeCollectionReference) : BaseNativeQueryWrapper<NativeCollectionReference>(native) {
+internal actual class NativeCollectionReferenceWrapper internal actual constructor(actual val native: NativeCollectionReference) : BaseNativeQueryWrapper(native) {
 
     actual val path: String
         get() = native.path

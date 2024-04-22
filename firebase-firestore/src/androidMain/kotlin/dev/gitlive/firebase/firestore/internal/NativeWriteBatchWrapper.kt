@@ -1,5 +1,6 @@
 package dev.gitlive.firebase.firestore.internal
 
+import dev.gitlive.firebase.android
 import dev.gitlive.firebase.firestore.DocumentReference
 import dev.gitlive.firebase.firestore.EncodedFieldPath
 import dev.gitlive.firebase.firestore.NativeWriteBatch

@@ -7,22 +7,17 @@ package dev.gitlive.firebase.firestore
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
 import dev.gitlive.firebase.FirebaseException
+import dev.gitlive.firebase.JsAccessor
 import dev.gitlive.firebase.externals.getApp
+import dev.gitlive.firebase.firestore.externals.Firestore
 import dev.gitlive.firebase.firestore.externals.MemoryCacheSettings
 import dev.gitlive.firebase.firestore.externals.PersistentCacheSettings
-import dev.gitlive.firebase.firestore.externals.getDoc
-import dev.gitlive.firebase.firestore.externals.getDocFromCache
-import dev.gitlive.firebase.firestore.externals.getDocFromServer
-import dev.gitlive.firebase.firestore.externals.getDocs
-import dev.gitlive.firebase.firestore.externals.getDocsFromCache
-import dev.gitlive.firebase.firestore.externals.getDocsFromServer
 import dev.gitlive.firebase.firestore.externals.memoryEagerGarbageCollector
 import dev.gitlive.firebase.firestore.externals.memoryLocalCache
 import dev.gitlive.firebase.firestore.externals.memoryLruGarbageCollector
 import dev.gitlive.firebase.firestore.externals.persistentLocalCache
 import dev.gitlive.firebase.firestore.internal.NativeDocumentSnapshotWrapper
 import dev.gitlive.firebase.firestore.internal.NativeFirebaseFirestoreWrapper
-import dev.gitlive.firebase.firestore.internal.SetOptions
 import kotlin.js.Json
 import kotlin.js.json
 import dev.gitlive.firebase.firestore.externals.Firestore as JsFirestore
@@ -44,7 +39,7 @@ actual val Firebase.firestore get() =
 actual fun Firebase.firestore(app: FirebaseApp) =
     rethrow { FirebaseFirestore(NativeFirebaseFirestoreWrapper(app.js)) }
 
-actual class NativeFirebaseFirestore(js: JsFirestore) : JsFirestore by js
+actual data class NativeFirebaseFirestore(override val js: Firestore) : JsAccessor<JsFirestore>
 
 actual data class FirebaseFirestoreSettings(
     actual val sslEnabled: Boolean,
@@ -109,17 +104,18 @@ actual fun firestoreSettings(
     }
 }.apply(builder).build()
 
-actual class NativeWriteBatch(js: JsWriteBatch) : JsWriteBatch by js
+actual data class NativeWriteBatch(override val js: JsWriteBatch) : JsAccessor<JsWriteBatch>
 
-actual class NativeTransaction(js: JsTransaction) : JsTransaction by js
+actual data class NativeTransaction(override val js: JsTransaction) : JsAccessor<JsTransaction>
 
 /** A class representing a platform specific Firebase DocumentReference. */
 actual typealias NativeDocumentReference = JsDocumentReference
 
-actual open class NativeQuery(js: JsQuery) : JsQuery by js
+actual class NativeQuery(override val js: JsQuery) : JsAccessor<JsQuery>
 internal val JsQuery.wrapped get() = NativeQuery(this)
 
-actual class NativeCollectionReference(js: JsCollectionReference) : NativeQuery(js), JsCollectionReference by js
+actual data class NativeCollectionReference(override val js: JsCollectionReference) : JsAccessor<JsCollectionReference>
+actual fun NativeCollectionReference.asNativeQuery(): NativeQuery = NativeQuery(js)
 
 actual class FirebaseFirestoreException(cause: Throwable, val code: FirestoreExceptionCode) : FirebaseException(code.toString(), cause)
 
@@ -145,7 +141,7 @@ actual class DocumentChange(val js: JsDocumentChange) {
         get() = ChangeType.values().first { it.jsString == js.type }
 }
 
-actual class NativeDocumentSnapshot(js: JsDocumentSnapshot) : JsDocumentSnapshot by js
+actual data class NativeDocumentSnapshot(override val js: JsDocumentSnapshot) : JsAccessor<JsDocumentSnapshot>
 
 actual class SnapshotMetadata(val js: JsSnapshotMetadata) {
     actual val hasPendingWrites: Boolean get() = js.hasPendingWrites

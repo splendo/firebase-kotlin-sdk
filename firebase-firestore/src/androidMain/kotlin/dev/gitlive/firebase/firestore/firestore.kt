@@ -100,6 +100,7 @@ actual typealias Direction = com.google.firebase.firestore.Query.Direction
 actual typealias ChangeType = com.google.firebase.firestore.DocumentChange.Type
 
 actual typealias NativeCollectionReference = com.google.firebase.firestore.CollectionReference
+actual fun NativeCollectionReference.asNativeQuery(): NativeQuery = this
 
 actual typealias FirebaseFirestoreException = com.google.firebase.firestore.FirebaseFirestoreException
 

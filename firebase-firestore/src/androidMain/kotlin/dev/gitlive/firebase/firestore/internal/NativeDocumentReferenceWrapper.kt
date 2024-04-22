@@ -3,6 +3,7 @@ package dev.gitlive.firebase.firestore.internal
 import com.google.android.gms.tasks.TaskExecutors
 import com.google.firebase.firestore.MetadataChanges
 import dev.gitlive.firebase.firestore.EncodedFieldPath
+import dev.gitlive.firebase.firestore.NativeCollectionReference
 import dev.gitlive.firebase.firestore.NativeDocumentReference
 import dev.gitlive.firebase.firestore.NativeDocumentSnapshot
 import dev.gitlive.firebase.firestore.Source
@@ -24,8 +25,8 @@ internal actual class NativeDocumentReferenceWrapper actual constructor(actual v
     actual val path: String
         get() = android.path
 
-    actual val parent: NativeCollectionReferenceWrapper
-        get() = NativeCollectionReferenceWrapper(android.parent)
+    actual val parent: NativeCollectionReference
+        get() = android.parent
 
     actual fun collection(collectionPath: String) = android.collection(collectionPath)
 

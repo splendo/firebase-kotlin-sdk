@@ -1,6 +1,7 @@
 package dev.gitlive.firebase.firestore.internal
 
 import dev.gitlive.firebase.firestore.EncodedFieldPath
+import dev.gitlive.firebase.firestore.NativeCollectionReference
 import dev.gitlive.firebase.firestore.NativeDocumentReference
 import dev.gitlive.firebase.firestore.NativeDocumentSnapshot
 import dev.gitlive.firebase.firestore.Source
@@ -32,8 +33,8 @@ internal actual class NativeDocumentReferenceWrapper actual constructor(actual v
     actual val path: String
         get() = ios.path
 
-    actual val parent: NativeCollectionReferenceWrapper
-        get() = NativeCollectionReferenceWrapper(ios.parent)
+    actual val parent: NativeCollectionReference
+        get() = ios.parent
 
 
     actual fun collection(collectionPath: String) = ios.collectionWithPath(collectionPath)

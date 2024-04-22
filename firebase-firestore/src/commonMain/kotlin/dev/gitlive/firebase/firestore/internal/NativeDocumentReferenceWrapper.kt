@@ -14,7 +14,7 @@ internal expect class NativeDocumentReferenceWrapper(native: NativeDocumentRefer
     val id: String
     val path: String
     val snapshots: Flow<NativeDocumentSnapshot>
-    val parent: NativeCollectionReferenceWrapper
+    val parent: NativeCollectionReference
     fun snapshots(includeMetadataChanges: Boolean = false): Flow<NativeDocumentSnapshot>
 
     fun collection(collectionPath: String): NativeCollectionReference

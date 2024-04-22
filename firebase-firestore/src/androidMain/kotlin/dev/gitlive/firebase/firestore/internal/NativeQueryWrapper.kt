@@ -17,12 +17,12 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 @PublishedApi
-internal actual abstract class BaseNativeQueryWrapper<Q : NativeQuery> internal actual constructor(actual val native: Q) {
+internal actual abstract class BaseNativeQueryWrapper internal actual constructor(actual val nativeQuery: NativeQuery) {
 
-    actual fun limit(limit: Number) = native.limit(limit.toLong())
+    actual fun limit(limit: Number) = nativeQuery.limit(limit.toLong())
 
     actual val snapshots get() = callbackFlow<QuerySnapshot> {
-        val listener = native.addSnapshotListener { snapshot, exception ->
+        val listener = nativeQuery.addSnapshotListener { snapshot, exception ->
             snapshot?.let { trySend(QuerySnapshot(snapshot)) }
             exception?.let { close(exception) }
         }
@@ -32,7 +32,7 @@ internal actual abstract class BaseNativeQueryWrapper<Q : NativeQuery> internal 
     actual fun snapshots(includeMetadataChanges: Boolean) = callbackFlow<QuerySnapshot> {
         val metadataChanges =
             if (includeMetadataChanges) MetadataChanges.INCLUDE else MetadataChanges.EXCLUDE
-        val listener = native.addSnapshotListener(metadataChanges) { snapshot, exception ->
+        val listener = nativeQuery.addSnapshotListener(metadataChanges) { snapshot, exception ->
             snapshot?.let { trySend(QuerySnapshot(snapshot)) }
             exception?.let { close(exception) }
         }
@@ -40,9 +40,9 @@ internal actual abstract class BaseNativeQueryWrapper<Q : NativeQuery> internal 
     }
 
     actual suspend fun get(source: Source): QuerySnapshot =
-        QuerySnapshot(native.get(source.toAndroidSource()).await())
+        QuerySnapshot(nativeQuery.get(source.toAndroidSource()).await())
 
-    actual fun where(filter: Filter) = native.where(filter.toAndroidFilter())
+    actual fun where(filter: Filter) = nativeQuery.where(filter.toAndroidFilter())
 
     private fun Filter.toAndroidFilter(): com.google.firebase.firestore.Filter = when (this) {
         is Filter.And -> com.google.firebase.firestore.Filter.and(*filters.map { it.toAndroidFilter() }
@@ -109,28 +109,28 @@ internal actual abstract class BaseNativeQueryWrapper<Q : NativeQuery> internal 
         }
     }
 
-    actual fun orderBy(field: String, direction: Direction) = native.orderBy(field, direction)
-    actual fun orderBy(field: EncodedFieldPath, direction: Direction) = native.orderBy(field, direction)
+    actual fun orderBy(field: String, direction: Direction) = nativeQuery.orderBy(field, direction)
+    actual fun orderBy(field: EncodedFieldPath, direction: Direction) = nativeQuery.orderBy(field, direction)
 
-    actual fun startAfter(document: NativeDocumentSnapshot) = native.startAfter(document)
-    actual fun startAfter(vararg fieldValues: Any) = native.startAfter(*fieldValues)
-    actual fun startAt(document: NativeDocumentSnapshot) = native.startAt(document)
-    actual fun startAt(vararg fieldValues: Any) = native.startAt(*fieldValues)
+    actual fun startAfter(document: NativeDocumentSnapshot) = nativeQuery.startAfter(document)
+    actual fun startAfter(vararg fieldValues: Any) = nativeQuery.startAfter(*fieldValues)
+    actual fun startAt(document: NativeDocumentSnapshot) = nativeQuery.startAt(document)
+    actual fun startAt(vararg fieldValues: Any) = nativeQuery.startAt(*fieldValues)
 
-    actual fun endBefore(document: NativeDocumentSnapshot) = native.endBefore(document)
-    actual fun endBefore(vararg fieldValues: Any) = native.endBefore(*fieldValues)
-    actual fun endAt(document: NativeDocumentSnapshot) = native.endAt(document)
-    actual fun endAt(vararg fieldValues: Any) = native.endAt(*fieldValues)
+    actual fun endBefore(document: NativeDocumentSnapshot) = nativeQuery.endBefore(document)
+    actual fun endBefore(vararg fieldValues: Any) = nativeQuery.endBefore(*fieldValues)
+    actual fun endAt(document: NativeDocumentSnapshot) = nativeQuery.endAt(document)
+    actual fun endAt(vararg fieldValues: Any) = nativeQuery.endAt(*fieldValues)
 
     private fun addSnapshotListener(
         includeMetadataChanges: Boolean = false,
         listener: ProducerScope<QuerySnapshot>.(com.google.firebase.firestore.QuerySnapshot?, com.google.firebase.firestore.FirebaseFirestoreException?) -> Unit
     ) = callbackFlow {
-        val executor = callbackExecutorMap[native.firestore] ?: TaskExecutors.MAIN_THREAD
+        val executor = callbackExecutorMap[nativeQuery.firestore] ?: TaskExecutors.MAIN_THREAD
         val metadataChanges =
             if (includeMetadataChanges) MetadataChanges.INCLUDE else MetadataChanges.EXCLUDE
         val registration =
-            native.addSnapshotListener(executor, metadataChanges) { snapshots, exception ->
+            nativeQuery.addSnapshotListener(executor, metadataChanges) { snapshots, exception ->
                 listener(snapshots, exception)
             }
         awaitClose { registration.remove() }

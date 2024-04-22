@@ -1046,7 +1046,7 @@ class FirebaseFirestoreTest {
             .set(FirestoreTest.serializer(), documentThree)
     }
 
-    private suspend fun <T> BaseQuery<*>.assertDocuments(serializer: KSerializer<T>, vararg expected: T) {
+    private suspend fun <T> BaseQuery.assertDocuments(serializer: KSerializer<T>, vararg expected: T) {
         val documents = get().documents
         assertEquals(expected.size, documents.size)
         documents.forEachIndexed { index, documentSnapshot ->

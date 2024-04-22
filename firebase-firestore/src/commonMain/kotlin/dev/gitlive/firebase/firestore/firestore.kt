@@ -190,11 +190,9 @@ data class Transaction internal constructor(@PublishedApi internal val nativeWra
     suspend fun get(documentRef: DocumentReference): DocumentSnapshot = DocumentSnapshot(nativeWrapper.get(documentRef))
 }
 
-expect open class NativeQuery
+expect class NativeQuery
 
-abstract class BaseQuery<Q : NativeQuery> internal constructor(internal val nativeQuery: BaseNativeQueryWrapper<Q>) : WithNative<Q> {
-
-    override val native = nativeQuery.native
+abstract class BaseQuery internal constructor(internal val nativeQuery: BaseNativeQueryWrapper) {
 
     fun limit(limit: Number): Query = Query(nativeQuery.limit(limit))
     val snapshots: Flow<QuerySnapshot> = nativeQuery.snapshots
@@ -217,8 +215,10 @@ abstract class BaseQuery<Q : NativeQuery> internal constructor(internal val nati
     fun endAt(vararg fieldValues: Any) = Query(nativeQuery.endAt(*(fieldValues.map { it.safeValue }.toTypedArray())))
 }
 
-class Query internal constructor(nativeQuery: NativeQueryWrapper) : BaseQuery<NativeQuery>(nativeQuery) {
+class Query internal constructor(nativeQuery: NativeQueryWrapper) : BaseQuery(nativeQuery), WithNative<NativeQuery> {
     constructor(native: NativeQuery) : this(NativeQueryWrapper(native))
+
+    override val native: NativeQuery = nativeQuery.native
 }
 
 @Deprecated("Deprecated in favor of using a [FilterBuilder]", replaceWith = ReplaceWith("where { field equalTo equalTo }", "dev.gitlive.firebase.firestore"))
@@ -443,9 +443,11 @@ data class DocumentReference internal constructor(@PublishedApi internal val wra
     suspend fun delete() = wrapper.delete()
 }
 
-expect class NativeCollectionReference : NativeQuery
+expect class NativeCollectionReference
 
-data class CollectionReference internal constructor(@PublishedApi internal val nativeWrapper: NativeCollectionReferenceWrapper) : BaseQuery<NativeCollectionReference>(nativeWrapper) {
+expect fun NativeCollectionReference.asNativeQuery(): NativeQuery
+
+data class CollectionReference internal constructor(@PublishedApi internal val nativeWrapper: NativeCollectionReferenceWrapper) : BaseQuery(nativeWrapper), WithNative<NativeCollectionReference> {
 
     constructor(native: NativeCollectionReference) : this(NativeCollectionReferenceWrapper(native))
 

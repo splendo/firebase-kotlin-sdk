@@ -6,7 +6,9 @@ import dev.gitlive.firebase.internal.EncodedObject
 
 @PublishedApi
 internal expect class NativeCollectionReferenceWrapper internal constructor(native: NativeCollectionReference) :
-    BaseNativeQueryWrapper<NativeCollectionReference> {
+    BaseNativeQueryWrapper {
+
+    val native: NativeCollectionReference
 
     val path: String
     val document: NativeDocumentReference

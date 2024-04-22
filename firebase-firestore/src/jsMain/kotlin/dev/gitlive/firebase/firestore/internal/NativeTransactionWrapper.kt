@@ -8,6 +8,7 @@ import dev.gitlive.firebase.firestore.performUpdate
 import dev.gitlive.firebase.firestore.rethrow
 import dev.gitlive.firebase.internal.EncodedObject
 import dev.gitlive.firebase.internal.js
+import dev.gitlive.firebase.js
 import kotlinx.coroutines.await
 
 @PublishedApi
@@ -15,16 +16,18 @@ internal actual class NativeTransactionWrapper actual internal constructor(actua
 
     constructor(js: Transaction) : this(NativeTransaction(js))
 
+    private val js = native.js
+
     actual fun setEncoded(
         documentRef: DocumentReference,
         encodedData: EncodedObject,
         setOptions: SetOptions
     ): NativeTransactionWrapper = rethrow {
-        native.set(documentRef.js, encodedData.js, setOptions.js)
+        js.set(documentRef.js, encodedData.js, setOptions.js)
     }
         .let { this }
 
-    actual fun updateEncoded(documentRef: DocumentReference, encodedData: EncodedObject): NativeTransactionWrapper = rethrow { native.update(documentRef.js, encodedData.js) }
+    actual fun updateEncoded(documentRef: DocumentReference, encodedData: EncodedObject): NativeTransactionWrapper = rethrow { js.update(documentRef.js, encodedData.js) }
         .let { this }
 
     actual fun updateEncodedFieldsAndValues(
@@ -32,7 +35,7 @@ internal actual class NativeTransactionWrapper actual internal constructor(actua
         encodedFieldsAndValues: List<Pair<String, Any?>>
     ): NativeTransactionWrapper = rethrow {
         encodedFieldsAndValues.performUpdate { field, value, moreFieldsAndValues ->
-            native.update(documentRef.js, field, value, *moreFieldsAndValues)
+            js.update(documentRef.js, field, value, *moreFieldsAndValues)
         }
     }.let { this }
 
@@ -41,14 +44,14 @@ internal actual class NativeTransactionWrapper actual internal constructor(actua
         encodedFieldsAndValues: List<Pair<EncodedFieldPath, Any?>>
     ): NativeTransactionWrapper = rethrow {
         encodedFieldsAndValues.performUpdate { field, value, moreFieldsAndValues ->
-            native.update(documentRef.js, field, value, *moreFieldsAndValues)
+            js.update(documentRef.js, field, value, *moreFieldsAndValues)
         }
     }.let { this }
 
     actual fun delete(documentRef: DocumentReference) =
-        rethrow { native.delete(documentRef.js) }
+        rethrow { js.delete(documentRef.js) }
             .let { this }
 
     actual suspend fun get(documentRef: DocumentReference) =
-        rethrow { NativeDocumentSnapshotWrapper(native.get(documentRef.js).await()) }
+        rethrow { NativeDocumentSnapshotWrapper(js.get(documentRef.js).await()) }
 }
