@@ -6,16 +6,16 @@ import kotlin.js.Date
 import dev.gitlive.firebase.auth.externals.UserInfo as JsUserInfo
 import kotlin.js.json
 
-actual class FirebaseUser internal constructor(val js: User) : FirebaseUserProfile {
+actual class FirebaseUser internal constructor(val js: User) {
     actual val uid: String
         get() = rethrow { js.uid }
-    override val displayName: String?
+    actual val displayName: String?
         get() = rethrow { js.displayName }
     actual val email: String?
         get() = rethrow { js.email }
     actual val phoneNumber: String?
         get() = rethrow { js.phoneNumber }
-    override val photoURL: String?
+    actual val photoURL: String?
         get() = rethrow { js.photoURL }
     actual val isAnonymous: Boolean
         get() = rethrow { js.isAnonymous }
@@ -33,7 +33,7 @@ actual class FirebaseUser internal constructor(val js: User) : FirebaseUserProfi
     actual suspend fun reload(): Unit = rethrow { js.reload().await() }
     actual suspend fun getIdToken(forceRefresh: Boolean): String? = rethrow { js.getIdToken(forceRefresh).await() }
     actual suspend fun getIdTokenResult(forceRefresh: Boolean): AuthTokenResult = rethrow { AuthTokenResult(getIdTokenResult(js, forceRefresh).await()) }
-    actual suspend fun linkWithCredential(credential: AuthCredential): AuthResult = rethrow { AuthResult( linkWithCredential(js, credential.js).await()) }
+    actual suspend fun linkWithCredential(credential: AuthCredential): AuthResult = rethrow { AuthResult(linkWithCredential(js, credential.js).await()) }
     actual suspend fun reauthenticate(credential: AuthCredential) = rethrow {
         reauthenticateWithCredential(js, credential.js).await()
         Unit
@@ -45,12 +45,12 @@ actual class FirebaseUser internal constructor(val js: User) : FirebaseUserProfi
     actual suspend fun updateEmail(email: String) = rethrow { updateEmail(js, email).await() }
     actual suspend fun updatePassword(password: String) = rethrow { updatePassword(js, password).await() }
     actual suspend fun updatePhoneNumber(credential: PhoneAuthCredential) = rethrow { updatePhoneNumber(js, credential.js).await() }
-    override suspend fun updateProfile(displayName: String?, photoUrl: String?): Unit = rethrow {
-        val request = object : ProfileUpdateRequest {
-            override val displayName: String? = displayName
-            override val photoURL: String? = photoUrl
-        }
-        updateProfile(js, request).await()
+    actual suspend fun updateProfile(displayName: String?, photoUrl: String?): Unit = rethrow {
+        val request = listOf(
+            "displayName" to displayName,
+            "photoURL" to photoUrl,
+        )
+        updateProfile(js, json(*request.toTypedArray())).await()
     }
     actual suspend fun verifyBeforeUpdateEmail(newEmail: String, actionCodeSettings: ActionCodeSettings?) = rethrow { verifyBeforeUpdateEmail(js, newEmail, actionCodeSettings?.toJson()).await() }
 }
@@ -72,7 +72,7 @@ actual class UserInfo(val js: JsUserInfo) {
 
 actual class UserMetaData(val js: UserMetadata) {
     actual val creationTime: Double?
-        get() = rethrow {js.creationTime?.let { (Date(it).getTime() / 1000.0) } }
+        get() = rethrow { js.creationTime?.let { (Date(it).getTime() / 1000.0) } }
     actual val lastSignInTime: Double?
-        get() = rethrow {js.lastSignInTime?.let { (Date(it).getTime() / 1000.0) } }
+        get() = rethrow { js.lastSignInTime?.let { (Date(it).getTime() / 1000.0) } }
 }

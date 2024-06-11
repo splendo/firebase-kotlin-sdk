@@ -10,9 +10,8 @@ import platform.Foundation.*
 actual val Firebase.installations
     get() = FirebaseInstallations(FIRInstallations.installations())
 
-@Suppress("CAST_NEVER_SUCCEEDS")
 actual fun Firebase.installations(app: FirebaseApp): FirebaseInstallations = FirebaseInstallations(
-    FIRInstallations.installationsWithApp(app.ios as objcnames.classes.FIRApp)
+    FIRInstallations.installationsWithApp(app.ios as objcnames.classes.FIRApp),
 )
 
 actual class FirebaseInstallations internal constructor(val ios: FIRInstallations) {
@@ -28,12 +27,12 @@ actual class FirebaseInstallations internal constructor(val ios: FIRInstallation
     }
 }
 
-actual class FirebaseInstallationsException(message: String): FirebaseException(message)
+actual class FirebaseInstallationsException(message: String) : FirebaseException(message)
 
 suspend inline fun <T> T.await(function: T.(callback: (NSError?) -> Unit) -> Unit) {
     val job = CompletableDeferred<Unit>()
     function { error ->
-        if(error == null) {
+        if (error == null) {
             job.complete(Unit)
         } else {
             job.completeExceptionally(FirebaseInstallationsException(error.toString()))
@@ -45,7 +44,7 @@ suspend inline fun <T> T.await(function: T.(callback: (NSError?) -> Unit) -> Uni
 suspend inline fun <T, reified R> T.awaitResult(function: T.(callback: (R?, NSError?) -> Unit) -> Unit): R {
     val job = CompletableDeferred<R?>()
     function { result, error ->
-        if(error == null) {
+        if (error == null) {
             job.complete(result)
         } else {
             job.completeExceptionally(FirebaseInstallationsException(error.toString()))

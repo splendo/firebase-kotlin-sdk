@@ -4,8 +4,10 @@
 
 package dev.gitlive.firebase.auth
 
-import dev.gitlive.firebase.*
+import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
+import dev.gitlive.firebase.FirebaseException
+import dev.gitlive.firebase.FirebaseNetworkException
 import dev.gitlive.firebase.auth.externals.*
 import kotlinx.coroutines.await
 import kotlinx.coroutines.channels.awaitClose
@@ -40,7 +42,9 @@ actual class FirebaseAuth internal constructor(val js: Auth) {
 
     actual var languageCode: String
         get() = js.languageCode ?: ""
-        set(value) { js.languageCode = value }
+        set(value) {
+            js.languageCode = value
+        }
 
     actual suspend fun applyActionCode(code: String) = rethrow { applyActionCode(js, code).await() }
     actual suspend fun confirmPasswordReset(code: String, newPassword: String) = rethrow { confirmPasswordReset(js, code, newPassword).await() }
@@ -84,18 +88,18 @@ actual class FirebaseAuth internal constructor(val js: Auth) {
     actual suspend fun <T : ActionCodeResult> checkActionCode(code: String): T = rethrow {
         val result = checkActionCode(js, code).await()
         @Suppress("UNCHECKED_CAST")
-        return when(result.operation) {
+        return when (result.operation) {
             "EMAIL_SIGNIN" -> ActionCodeResult.SignInWithEmailLink
             "VERIFY_EMAIL" -> ActionCodeResult.VerifyEmail(result.data.email!!)
             "PASSWORD_RESET" -> ActionCodeResult.PasswordReset(result.data.email!!)
             "RECOVER_EMAIL" -> ActionCodeResult.RecoverEmail(result.data.email!!, result.data.previousEmail!!)
             "VERIFY_AND_CHANGE_EMAIL" -> ActionCodeResult.VerifyBeforeChangeEmail(
                 result.data.email!!,
-                result.data.previousEmail!!
+                result.data.previousEmail!!,
             )
             "REVERT_SECOND_FACTOR_ADDITION" -> ActionCodeResult.RevertSecondFactorAddition(
                 result.data.email!!,
-                result.data.multiFactorInfo?.let { MultiFactorInfo(it) }
+                result.data.multiFactorInfo?.let { MultiFactorInfo(it) },
             )
             else -> throw UnsupportedOperationException(result.operation)
         } as T
@@ -114,8 +118,10 @@ actual class AuthTokenResult(val js: IdTokenResult) {
 //        get() = js.authTime
     actual val claims: Map<String, Any>
         get() = (js("Object").keys(js.claims) as Array<String>).mapNotNull {
-                key -> js.claims[key]?.let { key to it }
+                key ->
+            js.claims[key]?.let { key to it }
         }.toMap()
+
 //    actual val expirationTimestamp: Long
 //        get() = android.expirationTime
 //    actual val issuedAtTimestamp: Long
@@ -131,20 +137,19 @@ internal fun ActionCodeSettings.toJson() = json(
     "android" to (androidPackageName?.run { json("installApp" to installIfNotAvailable, "minimumVersion" to minimumVersion, "packageName" to packageName) } ?: undefined),
     "dynamicLinkDomain" to (dynamicLinkDomain ?: undefined),
     "handleCodeInApp" to canHandleCodeInApp,
-    "ios" to (iOSBundleId?.run { json("bundleId" to iOSBundleId) } ?: undefined)
+    "ios" to (iOSBundleId?.run { json("bundleId" to iOSBundleId) } ?: undefined),
 )
 
-actual open class FirebaseAuthException(code: String?, cause: Throwable): FirebaseException(code, cause)
-actual open class FirebaseAuthActionCodeException(code: String?, cause: Throwable): FirebaseAuthException(code, cause)
-actual open class FirebaseAuthEmailException(code: String?, cause: Throwable): FirebaseAuthException(code, cause)
-actual open class FirebaseAuthInvalidCredentialsException(code: String?, cause: Throwable): FirebaseAuthException(code, cause)
-actual open class FirebaseAuthWeakPasswordException(code: String?, cause: Throwable): FirebaseAuthInvalidCredentialsException(code, cause)
-actual open class FirebaseAuthInvalidUserException(code: String?, cause: Throwable): FirebaseAuthException(code, cause)
-actual open class FirebaseAuthMultiFactorException(code: String?, cause: Throwable): FirebaseAuthException(code, cause)
-actual open class FirebaseAuthRecentLoginRequiredException(code: String?, cause: Throwable): FirebaseAuthException(code, cause)
-actual open class FirebaseAuthUserCollisionException(code: String?, cause: Throwable): FirebaseAuthException(code, cause)
-actual open class FirebaseAuthWebException(code: String?, cause: Throwable): FirebaseAuthException(code, cause)
-
+actual open class FirebaseAuthException(code: String?, cause: Throwable) : FirebaseException(code, cause)
+actual open class FirebaseAuthActionCodeException(code: String?, cause: Throwable) : FirebaseAuthException(code, cause)
+actual open class FirebaseAuthEmailException(code: String?, cause: Throwable) : FirebaseAuthException(code, cause)
+actual open class FirebaseAuthInvalidCredentialsException(code: String?, cause: Throwable) : FirebaseAuthException(code, cause)
+actual open class FirebaseAuthWeakPasswordException(code: String?, cause: Throwable) : FirebaseAuthInvalidCredentialsException(code, cause)
+actual open class FirebaseAuthInvalidUserException(code: String?, cause: Throwable) : FirebaseAuthException(code, cause)
+actual open class FirebaseAuthMultiFactorException(code: String?, cause: Throwable) : FirebaseAuthException(code, cause)
+actual open class FirebaseAuthRecentLoginRequiredException(code: String?, cause: Throwable) : FirebaseAuthException(code, cause)
+actual open class FirebaseAuthUserCollisionException(code: String?, cause: Throwable) : FirebaseAuthException(code, cause)
+actual open class FirebaseAuthWebException(code: String?, cause: Throwable) : FirebaseAuthException(code, cause)
 
 internal inline fun <T, R> T.rethrow(function: T.() -> R): R = dev.gitlive.firebase.auth.rethrow { function() }
 
@@ -153,12 +158,12 @@ private inline fun <R> rethrow(function: () -> R): R {
         return function()
     } catch (e: Exception) {
         throw e
-    } catch(e: dynamic) {
+    } catch (e: dynamic) {
         throw errorToException(e)
     }
 }
 
-private fun errorToException(cause: dynamic) = when(val code = cause.code?.toString()?.lowercase()) {
+private fun errorToException(cause: dynamic) = when (val code = cause.code?.toString()?.lowercase()) {
     "auth/invalid-user-token" -> FirebaseAuthInvalidUserException(code, cause)
     "auth/requires-recent-login" -> FirebaseAuthRecentLoginRequiredException(code, cause)
     "auth/user-disabled" -> FirebaseAuthInvalidUserException(code, cause)
@@ -171,9 +176,11 @@ private fun errorToException(cause: dynamic) = when(val code = cause.code?.toStr
     "auth/invalid-verification-code",
     "auth/missing-verification-code",
     "auth/invalid-verification-id",
-    "auth/missing-verification-id" -> FirebaseAuthInvalidCredentialsException(code, cause)
+    "auth/missing-verification-id",
+    -> FirebaseAuthInvalidCredentialsException(code, cause)
     "auth/maximum-second-factor-count-exceeded",
-    "auth/second-factor-already-in-use" -> FirebaseAuthMultiFactorException(code, cause)
+    "auth/second-factor-already-in-use",
+    -> FirebaseAuthMultiFactorException(code, cause)
     "auth/credential-already-in-use" -> FirebaseAuthUserCollisionException(code, cause)
     "auth/email-already-in-use" -> FirebaseAuthUserCollisionException(code, cause)
     "auth/invalid-email" -> FirebaseAuthEmailException(code, cause)

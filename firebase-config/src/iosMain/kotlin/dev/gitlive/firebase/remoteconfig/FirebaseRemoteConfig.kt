@@ -19,9 +19,8 @@ import platform.Foundation.timeIntervalSince1970
 actual val Firebase.remoteConfig: FirebaseRemoteConfig
     get() = FirebaseRemoteConfig(FIRRemoteConfig.remoteConfig())
 
-@Suppress("CAST_NEVER_SUCCEEDS")
 actual fun Firebase.remoteConfig(app: FirebaseApp): FirebaseRemoteConfig = FirebaseRemoteConfig(
-    FIRRemoteConfig.remoteConfigWithApp(Firebase.app.ios as objcnames.classes.FIRApp)
+    FIRRemoteConfig.remoteConfigWithApp(Firebase.app.ios as objcnames.classes.FIRApp),
 )
 
 actual class FirebaseRemoteConfig internal constructor(val ios: FIRRemoteConfig) {
@@ -47,7 +46,7 @@ actual class FirebaseRemoteConfig internal constructor(val ios: FIRRemoteConfig)
                     ?.let { it.toLong() * 1000 }
                     ?.takeIf { it > 0 }
                     ?: -1L,
-                lastFetchStatus = ios.lastFetchStatus.asCommon()
+                lastFetchStatus = ios.lastFetchStatus.asCommon(),
             )
         }
 
@@ -114,42 +113,41 @@ actual class FirebaseRemoteConfig internal constructor(val ios: FIRRemoteConfig)
     }
 }
 
-private suspend inline fun <T, reified R> T.awaitResult(function: T.(callback: (R?, NSError?) -> Unit) -> Unit): R {
+private suspend inline fun <T, reified R> T.awaitResult(
+    function: T.(callback: (R?, NSError?) -> Unit) -> Unit,
+): R {
     val job = CompletableDeferred<R?>()
-    val callback = { result: R?, error: NSError? ->
+    function { result: R?, error: NSError? ->
         if(error == null) {
             job.complete(result)
         } else {
             job.completeExceptionally(error.toException())
         }
     }
-    function(callback)
     return job.await() as R
 }
 
 private suspend inline fun <T> T.await(function: T.(callback: (NSError?) -> Unit) -> Unit) {
     val job = CompletableDeferred<Unit>()
-    val callback = { error: NSError? ->
+    function { error: NSError? ->
         if(error == null) {
             job.complete(Unit)
         } else {
             job.completeExceptionally(error.toException())
         }
     }
-    function(callback)
     job.await()
 }
-
 
 private fun NSError.toException() = when (domain) {
     FIRRemoteConfigErrorDomain -> {
         when (code) {
             FIRRemoteConfigErrorThrottled -> FirebaseRemoteConfigFetchThrottledException(
-                localizedDescription
+                localizedDescription,
             )
 
             FIRRemoteConfigErrorInternalError -> FirebaseRemoteConfigServerException(
-                localizedDescription
+                localizedDescription,
             )
 
             else -> FirebaseRemoteConfigClientException(localizedDescription)
@@ -158,7 +156,6 @@ private fun NSError.toException() = when (domain) {
 
     else -> FirebaseException(localizedDescription)
 }
-
 
 actual open class FirebaseRemoteConfigException(message: String) : FirebaseException(message)
 

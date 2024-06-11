@@ -5,10 +5,17 @@
 package dev.gitlive.firebase.database
 
 import dev.gitlive.firebase.DecodeSettings
+import dev.gitlive.firebase.EncodeDecodeSettingsBuilder
 import dev.gitlive.firebase.EncodeSettings
+import dev.gitlive.firebase.internal.EncodedObject
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
-import dev.gitlive.firebase.database.ChildEvent.Type.*
+import dev.gitlive.firebase.database.ChildEvent.Type.ADDED
+import dev.gitlive.firebase.database.ChildEvent.Type.CHANGED
+import dev.gitlive.firebase.database.ChildEvent.Type.MOVED
+import dev.gitlive.firebase.database.ChildEvent.Type.REMOVED
+import dev.gitlive.firebase.internal.encode
+import dev.gitlive.firebase.internal.encodeAsObject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.KSerializer
@@ -28,38 +35,34 @@ expect fun Firebase.database(app: FirebaseApp, url: String): FirebaseDatabase
 
 expect class FirebaseDatabase {
 
-    class Settings {
-        val persistenceEnabled: Boolean
-        val persistenceCacheSizeBytes: Long?
-
-        companion object {
-            fun createSettings(persistenceEnabled: Boolean = false, persistenceCacheSizeBytes:  Long? = null): Settings
-        }
-    }
-
     fun reference(path: String): DatabaseReference
     fun reference(): DatabaseReference
-    fun setSettings(settings: Settings)
     fun setLoggingEnabled(enabled: Boolean)
+    fun setPersistenceEnabled(enabled: Boolean)
+    fun setPersistenceCacheSizeBytes(cacheSizeInBytes: Long)
     fun useEmulator(host: String, port: Int)
-}
 
-fun FirebaseDatabase.setPersistenceEnabled(enabled: Boolean) = setSettings(FirebaseDatabase.Settings.createSettings(persistenceEnabled = enabled))
+    fun goOffline()
+
+    fun goOnline()
+}
 
 data class ChildEvent internal constructor(
     val snapshot: DataSnapshot,
     val type: Type,
-    val previousChildName: String?
+    val previousChildName: String?,
 ) {
     enum class Type {
         ADDED,
         CHANGED,
         MOVED,
-        REMOVED
+        REMOVED,
     }
 }
 
-expect open class Query {
+internal expect open class NativeQuery
+
+expect open class Query internal constructor(nativeQuery: NativeQuery) {
     val valueEvents: Flow<DataSnapshot>
     fun childEvents(vararg types: ChildEvent.Type = arrayOf(ADDED, CHANGED, MOVED, REMOVED)): Flow<ChildEvent>
     fun orderByKey(): Query
@@ -78,17 +81,53 @@ expect open class Query {
     fun equalTo(value: Boolean, key: String? = null): Query
 }
 
-expect class DatabaseReference : Query {
+@PublishedApi
+internal expect class NativeDatabaseReference : NativeQuery {
     val key: String?
-    fun push(): DatabaseReference
-    fun child(path: String): DatabaseReference
-    fun onDisconnect(): OnDisconnect
-    suspend inline fun <reified T> setValue(value: T?, encodeSettings: EncodeSettings = EncodeSettings())
-    suspend fun <T> setValue(strategy: SerializationStrategy<T>, value: T, encodeSettings: EncodeSettings = EncodeSettings())
-    suspend fun updateChildren(update: Map<String, Any?>, encodeSettings: EncodeSettings = EncodeSettings())
+    fun push(): NativeDatabaseReference
+    suspend fun setValueEncoded(encodedValue: Any?)
+    suspend fun updateEncodedChildren(encodedUpdate: EncodedObject)
+    fun child(path: String): NativeDatabaseReference
+    fun onDisconnect(): NativeOnDisconnect
+
     suspend fun removeValue()
 
-    suspend fun <T> runTransaction(strategy: KSerializer<T>, decodeSettings: DecodeSettings = DecodeSettings(), transactionUpdate: (currentData: T) -> T): DataSnapshot
+    suspend fun <T> runTransaction(strategy: KSerializer<T>, buildSettings: EncodeDecodeSettingsBuilder.() -> Unit = {}, transactionUpdate: (currentData: T) -> T): DataSnapshot
+}
+
+class DatabaseReference internal constructor(@PublishedApi internal val nativeReference: NativeDatabaseReference) : Query(nativeReference) {
+
+    val key: String? = nativeReference.key
+    fun push(): DatabaseReference = DatabaseReference(nativeReference.push())
+    fun child(path: String): DatabaseReference = DatabaseReference(nativeReference.child(path))
+    fun onDisconnect(): OnDisconnect = OnDisconnect(nativeReference.onDisconnect())
+
+    @Deprecated("Deprecated. Use builder instead", replaceWith = ReplaceWith("setValue(value) { this.encodeDefaults = encodeDefaults }"))
+    suspend inline fun <reified T> setValue(value: T?, encodeDefaults: Boolean) =
+        setValue(value) {
+            this.encodeDefaults = encodeDefaults
+        }
+    suspend inline fun <reified T> setValue(value: T?, buildSettings: EncodeSettings.Builder.() -> Unit = {}) =
+        nativeReference.setValueEncoded(encode(value, buildSettings))
+
+    @Deprecated("Deprecated. Use builder instead", replaceWith = ReplaceWith("setValue(strategy, value) { this.encodeDefaults = encodeDefaults }"))
+    suspend fun <T> setValue(strategy: SerializationStrategy<T>, value: T, encodeDefaults: Boolean) =
+        setValue(strategy, value) {
+            this.encodeDefaults = encodeDefaults
+        }
+    suspend inline fun <T> setValue(strategy: SerializationStrategy<T>, value: T, buildSettings: EncodeSettings.Builder.() -> Unit = {}) = nativeReference.setValueEncoded(encode(strategy, value, buildSettings))
+
+    @Deprecated("Deprecated. Use builder instead", replaceWith = ReplaceWith("updateChildren(update) { this.encodeDefaults = encodeDefaults }"))
+    suspend fun updateChildren(update: Map<String, Any?>, encodeDefaults: Boolean) = updateChildren(update) {
+        this.encodeDefaults = encodeDefaults
+    }
+    suspend inline fun updateChildren(update: Map<String, Any?>, buildSettings: EncodeSettings.Builder.() -> Unit = {}) = nativeReference.updateEncodedChildren(
+        encodeAsObject(update, buildSettings),
+    )
+
+    suspend fun removeValue() = nativeReference.removeValue()
+
+    suspend fun <T> runTransaction(strategy: KSerializer<T>, buildSettings: EncodeDecodeSettingsBuilder.() -> Unit = {}, transactionUpdate: (currentData: T) -> T): DataSnapshot = nativeReference.runTransaction(strategy, buildSettings, transactionUpdate)
 }
 
 expect class DataSnapshot {
@@ -97,7 +136,7 @@ expect class DataSnapshot {
     val ref: DatabaseReference
     val value: Any?
     inline fun <reified T> value(): T
-    fun <T> value(strategy: DeserializationStrategy<T>, decodeSettings: DecodeSettings = DecodeSettings()): T
+    inline fun <T> value(strategy: DeserializationStrategy<T>, buildSettings: DecodeSettings.Builder.() -> Unit = {}): T
     fun child(path: String): DataSnapshot
     val hasChildren: Boolean
     val children: Iterable<DataSnapshot>
@@ -105,10 +144,35 @@ expect class DataSnapshot {
 
 expect class DatabaseException(message: String?, cause: Throwable?) : RuntimeException
 
-expect class OnDisconnect {
+@PublishedApi
+internal expect class NativeOnDisconnect {
     suspend fun removeValue()
     suspend fun cancel()
-    suspend inline fun <reified T> setValue(value: T, encodeSettings: EncodeSettings = EncodeSettings())
-    suspend fun <T> setValue(strategy: SerializationStrategy<T>, value: T, encodeSettings: EncodeSettings = EncodeSettings())
-    suspend fun updateChildren(update: Map<String, Any?>, encodeSettings: EncodeSettings = EncodeSettings())
+    suspend fun setValue(encodedValue: Any?)
+    suspend fun updateEncodedChildren(encodedUpdate: EncodedObject)
+}
+
+class OnDisconnect internal constructor(@PublishedApi internal val native: NativeOnDisconnect) {
+    suspend fun removeValue() = native.removeValue()
+    suspend fun cancel() = native.cancel()
+
+    @Deprecated("Deprecated. Use builder instead", replaceWith = ReplaceWith("setValue(value) { this.encodeDefaults = encodeDefaults }"))
+    suspend inline fun <reified T> setValue(value: T?, encodeDefaults: Boolean) =
+        setValue(value) { this.encodeDefaults = encodeDefaults }
+    suspend inline fun <reified T> setValue(value: T?, buildSettings: EncodeSettings.Builder.() -> Unit = {}) =
+        native.setValue(encode(value, buildSettings))
+
+    @Deprecated("Deprecated. Use builder instead", replaceWith = ReplaceWith("setValue(strategy, value) { this.encodeDefaults = encodeDefaults }"))
+    suspend fun <T> setValue(strategy: SerializationStrategy<T>, value: T, encodeDefaults: Boolean) =
+        setValue(strategy, value) { this.encodeDefaults = encodeDefaults }
+    suspend inline fun <T> setValue(strategy: SerializationStrategy<T>, value: T, buildSettings: EncodeSettings.Builder.() -> Unit = {}) = setValue(encode(strategy, value, buildSettings))
+
+    suspend inline fun updateChildren(update: Map<String, Any?>, buildSettings: EncodeSettings.Builder.() -> Unit = {}) = native.updateEncodedChildren(
+        encodeAsObject(update, buildSettings),
+    )
+
+    @Deprecated("Deprecated. Use builder instead", replaceWith = ReplaceWith("updateChildren(update) { this.encodeDefaults = encodeDefaults }"))
+    suspend fun updateChildren(update: Map<String, Any?>, encodeDefaults: Boolean) = updateChildren(update) {
+        this.encodeDefaults = encodeDefaults
+    }
 }

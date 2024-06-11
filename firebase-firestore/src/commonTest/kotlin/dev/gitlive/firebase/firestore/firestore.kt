@@ -4,16 +4,21 @@
 
 package dev.gitlive.firebase.firestore
 
-import dev.gitlive.firebase.*
-import dev.gitlive.firebase.firestore.encode
-import kotlinx.coroutines.CoroutineScope
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.FirebaseOptions
+import dev.gitlive.firebase.apps
+import dev.gitlive.firebase.internal.decode
+import dev.gitlive.firebase.initialize
+import dev.gitlive.firebase.runBlockingTest
+import dev.gitlive.firebase.runTest
+import dev.gitlive.firebase.internal.withSerializer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.nullable
@@ -33,6 +38,7 @@ expect val context: Any
 
 /** @return a map extracted from the encoded data. */
 expect fun encodedAsMap(encoded: Any?): Map<String, Any?>
+
 /** @return pairs as raw encoded data. */
 expect fun Map<String, Any?>.asEncoded(): Any
 
@@ -45,13 +51,37 @@ class FirebaseFirestoreTest {
         val time: Double = 0.0,
         val count: Int = 0,
         val list: List<String> = emptyList(),
+        val optional: String? = null,
     )
 
     @Serializable
     data class FirestoreTimeTest(
         val prop1: String,
-        val time: BaseTimestamp?
+        val time: BaseTimestamp?,
     )
+
+    companion object {
+        val testOne = FirestoreTest(
+            "aaa",
+            0.0,
+            1,
+            listOf("a", "aa", "aaa"),
+            "notNull",
+        )
+        val testTwo = FirestoreTest(
+            "bbb",
+            0.0,
+            2,
+            listOf("b", "bb", "ccc"),
+        )
+        val testThree = FirestoreTest(
+            "ccc",
+            1.0,
+            3,
+            listOf("c", "cc", "ccc"),
+            "notNull",
+        )
+    }
 
     lateinit var firestore: FirebaseFirestore
 
@@ -65,13 +95,17 @@ class FirebaseFirestoreTest {
                 databaseUrl = "https://fir-kotlin-sdk.firebaseio.com",
                 storageBucket = "fir-kotlin-sdk.appspot.com",
                 projectId = "fir-kotlin-sdk",
-                gcmSenderId = "846484016111"
-            )
+                gcmSenderId = "846484016111",
+            ),
         )
 
         firestore = Firebase.firestore(app).apply {
             useEmulator(emulatorHost, 8080)
-            setSettings(FirebaseFirestore.Settings.create(cacheSettings = LocalCacheSettings.Memory(LocalCacheSettings.Memory.GarbageCollectorSettings.Eager)))
+            settings = firestoreSettings(settings) {
+                cacheSettings = memoryCacheSettings {
+                    gcSettings = memoryEagerGcSettings { }
+                }
+            }
         }
     }
 
@@ -186,7 +220,7 @@ class FirebaseFirestoreTest {
 
         doc.set(
             FirestoreTimeTest.serializer(),
-            FirestoreTimeTest("ServerTimestampBehavior", Timestamp.ServerTimestamp)
+            FirestoreTimeTest("ServerTimestampBehavior", Timestamp.ServerTimestamp),
         )
 
         val pendingWritesSnapshot = deferredPendingWritesSnapshot.await()
@@ -195,7 +229,7 @@ class FirebaseFirestoreTest {
     }
 
     @Test
-    fun testExtendedSetBatch() = runTest {
+    fun testSetBatch() = runTest {
         val doc = firestore
             .collection("testServerTestSetBatch")
             .document("test")
@@ -205,17 +239,12 @@ class FirebaseFirestoreTest {
             strategy = FirestoreTest.serializer(),
             data = FirestoreTest(
                 prop1 = "prop1",
-                time = 123.0
+                time = 123.0,
             ),
-            fieldsAndValues = arrayOf(
-                "time" to 124.0
-            )
         )
         batch.commit()
 
-        assertEquals(124.0, doc.get().get("time"))
         assertEquals("prop1", doc.get().data(FirestoreTest.serializer()).prop1)
-
     }
 
     @Test
@@ -474,11 +503,89 @@ class FirebaseFirestoreTest {
     }
 
     @Test
+    fun testSetBatchDoesNotEncodeEmptyValues() = runTest {
+        val doc = firestore
+            .collection("testServerTestSetBatch")
+            .document("test")
+        val batch = firestore.batch()
+        batch.set(
+            documentRef = doc,
+            strategy = FirestoreTest.serializer(),
+            data = FirestoreTest(
+                prop1 = "prop1-set",
+                time = 125.0,
+            ),
+        )
+        batch.commit()
+
+        assertEquals(125.0, doc.get().get("time") as Double?)
+        assertEquals("prop1-set", doc.get().data(FirestoreTest.serializer()).prop1)
+    }
+
+    @Test
+    fun testUpdateBatch() = runTest {
+        val doc = firestore
+            .collection("testServerTestSetBatch")
+            .document("test").apply {
+                set(
+                    FirestoreTest(
+                        prop1 = "prop1",
+                        time = 123.0,
+                    ),
+                )
+            }
+
+        val batch = firestore.batch()
+        batch.update(
+            documentRef = doc,
+            strategy = FirestoreTest.serializer(),
+            data = FirestoreTest(
+                prop1 = "prop1-updated",
+                time = 123.0,
+            ),
+        ) {
+            encodeDefaults = false
+        }
+        batch.commit()
+
+        assertEquals("prop1-updated", doc.get().data(FirestoreTest.serializer()).prop1)
+    }
+
+    @Test
+    fun testUpdateBatchDoesNotEncodeEmptyValues() = runTest {
+        val doc = firestore
+            .collection("testServerTestSetBatch")
+            .document("test").apply {
+                set(
+                    FirestoreTest(
+                        prop1 = "prop1",
+                        time = 123.0,
+                    ),
+                )
+            }
+        val batch = firestore.batch()
+        batch.update(
+            documentRef = doc,
+            strategy = FirestoreTest.serializer(),
+            data = FirestoreTest(
+                prop1 = "prop1-set",
+                time = 126.0,
+            ),
+        ) {
+            encodeDefaults = false
+        }
+        batch.commit()
+
+        assertEquals(126.0, doc.get().get("time") as Double?)
+        assertEquals("prop1-set", doc.get().data(FirestoreTest.serializer()).prop1)
+    }
+
+    @Test
     fun testLegacyDoubleTimestamp() = runTest {
         @Serializable
         data class DoubleTimestamp(
             @Serializable(with = DoubleAsTimestampSerializer::class)
-            val time: Double?
+            val time: Double?,
         )
 
         val doc = firestore
@@ -490,12 +597,12 @@ class FirebaseFirestoreTest {
         }
         nonSkippedDelay(100) // makes possible to catch pending writes snapshot
 
-        doc.set(DoubleTimestamp.serializer(), DoubleTimestamp(DoubleAsTimestampSerializer.serverTimestamp))
+        doc.set(DoubleTimestamp.serializer(), DoubleTimestamp(DoubleAsTimestampSerializer.SERVER_TIMESTAMP))
 
         val pendingWritesSnapshot = deferredPendingWritesSnapshot.await()
         assertTrue(pendingWritesSnapshot.metadata.hasPendingWrites)
-        assertNotNull(pendingWritesSnapshot.get("time", DoubleAsTimestampSerializer, serverTimestampBehavior = ServerTimestampBehavior.ESTIMATE ))
-        assertNotEquals(DoubleAsTimestampSerializer.serverTimestamp, pendingWritesSnapshot.data(DoubleTimestamp.serializer(), serverTimestampBehavior = ServerTimestampBehavior.ESTIMATE).time)
+        assertNotNull(pendingWritesSnapshot.get("time", DoubleAsTimestampSerializer, serverTimestampBehavior = ServerTimestampBehavior.ESTIMATE))
+        assertNotEquals(DoubleAsTimestampSerializer.SERVER_TIMESTAMP, pendingWritesSnapshot.data(DoubleTimestamp.serializer(), serverTimestampBehavior = ServerTimestampBehavior.ESTIMATE).time)
     }
 
     @Test
@@ -587,12 +694,12 @@ class FirebaseFirestoreTest {
         @Serializable
         data class LegacyDocument(
             @Serializable(with = DoubleAsTimestampSerializer::class)
-            val time: Double
+            val time: Double,
         )
 
         @Serializable
         data class NewDocument(
-            val time: Timestamp
+            val time: Timestamp,
         )
 
         val doc = firestore
@@ -611,7 +718,7 @@ class FirebaseFirestoreTest {
     fun testQueryByTimestamp() = runTest {
         @Serializable
         data class DocumentWithTimestamp(
-            val time: Timestamp
+            val time: Timestamp,
         )
 
         val collection = firestore
@@ -625,31 +732,17 @@ class FirebaseFirestoreTest {
         collection.add(DocumentWithTimestamp.serializer(), DocumentWithTimestamp(pastTimestamp))
         collection.add(DocumentWithTimestamp.serializer(), DocumentWithTimestamp(futureTimestamp))
 
-        val equalityQueryResult = collection.where(
-            path = FieldPath(DocumentWithTimestamp::time.name),
-            equalTo = pastTimestamp
-        ).get().documents.map { it.data(DocumentWithTimestamp.serializer()) }.toSet()
+        val equalityQueryResult = collection.where {
+            FieldPath(DocumentWithTimestamp::time.name) equalTo pastTimestamp
+        }.get().documents.map { it.data(DocumentWithTimestamp.serializer()) }.toSet()
 
         assertEquals(setOf(DocumentWithTimestamp(pastTimestamp)), equalityQueryResult)
 
-        val gtQueryResult = collection.where(
-            path = FieldPath(DocumentWithTimestamp::time.name),
-            greaterThan = timestamp
-        ).get().documents.map { it.data(DocumentWithTimestamp.serializer()) }.toSet()
+        val gtQueryResult = collection.where {
+            FieldPath(DocumentWithTimestamp::time.name) greaterThan timestamp
+        }.get().documents.map { it.data(DocumentWithTimestamp.serializer()) }.toSet()
 
         assertEquals(setOf(DocumentWithTimestamp(futureTimestamp)), gtQueryResult)
-    }
-
-    private suspend fun setupFirestoreData() {
-        firestore.collection("testFirestoreQuerying")
-            .document("one")
-            .set(FirestoreTest.serializer(), FirestoreTest("aaa"))
-        firestore.collection("testFirestoreQuerying")
-            .document("two")
-            .set(FirestoreTest.serializer(), FirestoreTest("bbb"))
-        firestore.collection("testFirestoreQuerying")
-            .document("three")
-            .set(FirestoreTest.serializer(), FirestoreTest("ccc"))
     }
 
     @Test
@@ -679,7 +772,7 @@ class FirebaseFirestoreTest {
     fun testDocumentReferenceSerialization() = runTest {
         @Serializable
         data class DataWithDocumentReference(
-            val documentReference: DocumentReference
+            val documentReference: DocumentReference,
         )
 
         fun getCollection() = firestore.collection("documentReferenceSerialization")
@@ -702,7 +795,7 @@ class FirebaseFirestoreTest {
         // update data
         val updatedData = DataWithDocumentReference(documentRef2)
         getDocument().update(
-            FieldPath(DataWithDocumentReference::documentReference.name) to updatedData.documentReference.withSerializer(DocumentReferenceSerializer)
+            FieldPath(DataWithDocumentReference::documentReference.name) to updatedData.documentReference.withSerializer(DocumentReferenceSerializer),
         )
         // verify update
         val updatedSavedData = getDocument().get().data(DataWithDocumentReference.serializer())
@@ -713,19 +806,23 @@ class FirebaseFirestoreTest {
     data class TestDataWithDocumentReference(
         val uid: String,
         val reference: DocumentReference,
-        val optionalReference: DocumentReference?
+        val optionalReference: DocumentReference?,
     )
 
     @Serializable
     data class TestDataWithOptionalDocumentReference(
-        val optionalReference: DocumentReference?
+        val optionalReference: DocumentReference?,
     )
 
     @Test
     fun encodeDocumentReference() = runTest {
         val doc = firestore.document("a/b")
         val item = TestDataWithDocumentReference("123", doc, doc)
-        val encoded = encodedAsMap(encode(item, shouldEncodeElementDefault = false))
+        val encoded = encodedAsMap(
+            encode(item) {
+                encodeDefaults = false
+            },
+        )
         assertEquals("123", encoded["uid"])
         assertEquals(doc.nativeValue, encoded["reference"])
         assertEquals(doc.nativeValue, encoded["optionalReference"])
@@ -734,7 +831,11 @@ class FirebaseFirestoreTest {
     @Test
     fun encodeNullDocumentReference() = runTest {
         val item = TestDataWithOptionalDocumentReference(null)
-        val encoded = encodedAsMap(encode(item, shouldEncodeElementDefault = false))
+        val encoded = encodedAsMap(
+            encode(item) {
+                encodeDefaults = false
+            },
+        )
         assertNull(encoded["optionalReference"])
     }
 
@@ -744,7 +845,7 @@ class FirebaseFirestoreTest {
         val obj = mapOf(
             "uid" to "123",
             "reference" to doc.nativeValue,
-            "optionalReference" to doc.nativeValue
+            "optionalReference" to doc.nativeValue,
         ).asEncoded()
         val decoded: TestDataWithDocumentReference = decode(obj)
         assertEquals("123", decoded.uid)
@@ -786,6 +887,254 @@ class FirebaseFirestoreTest {
         getDocument().update(FieldPath(TestData::values.name) to FieldValue.delete)
         val deletedList = getDocument().get().get(TestData::values.name, ListSerializer(Int.serializer()).nullable)
         assertNull(deletedList)
+    }
+
+    @Test
+    fun testQueryEqualTo() = runTest {
+        setupFirestoreData()
+
+        val fieldQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { "prop1" equalTo testOne.prop1 }
+
+        fieldQuery.assertDocuments(FirestoreTest.serializer(), testOne)
+
+        val pathQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath(FirestoreTest::prop1.name) equalTo testTwo.prop1 }
+
+        pathQuery.assertDocuments(FirestoreTest.serializer(), testTwo)
+
+        val nullableQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath(FirestoreTest::optional.name) equalTo null }
+
+        nullableQuery.assertDocuments(FirestoreTest.serializer(), testTwo)
+    }
+
+    @Test
+    fun testQueryNotEqualTo() = runTest {
+        setupFirestoreData()
+
+        val fieldQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { "prop1" notEqualTo testOne.prop1 }
+
+        fieldQuery.assertDocuments(FirestoreTest.serializer(), testTwo, testThree)
+
+        val pathQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath(FirestoreTest::prop1.name) notEqualTo testTwo.prop1 }
+
+        pathQuery.assertDocuments(FirestoreTest.serializer(), testOne, testThree)
+
+        val nullableQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath(FirestoreTest::optional.name) notEqualTo null }
+
+        nullableQuery.assertDocuments(FirestoreTest.serializer(), testOne, testThree)
+    }
+
+    @Test
+    fun testQueryLessThan() = runTest {
+        setupFirestoreData()
+
+        val fieldQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { "count" lessThan testThree.count }
+
+        fieldQuery.assertDocuments(FirestoreTest.serializer(), testOne, testTwo)
+
+        val pathQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath(FirestoreTest::count.name) lessThan testTwo.count }
+
+        pathQuery.assertDocuments(FirestoreTest.serializer(), testOne)
+    }
+
+    @Test
+    fun testQueryGreaterThan() = runTest {
+        setupFirestoreData()
+
+        val fieldQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { "count" greaterThan testOne.count }
+
+        fieldQuery.assertDocuments(FirestoreTest.serializer(), testTwo, testThree)
+
+        val pathQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath(FirestoreTest::count.name) greaterThan testTwo.count }
+
+        pathQuery.assertDocuments(FirestoreTest.serializer(), testThree)
+    }
+
+    @Test
+    fun testQueryLessThanOrEqualTo() = runTest {
+        setupFirestoreData()
+
+        val fieldQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { "count" lessThanOrEqualTo testOne.count }
+
+        fieldQuery.assertDocuments(FirestoreTest.serializer(), testOne)
+
+        val pathQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath(FirestoreTest::count.name) lessThanOrEqualTo testTwo.count }
+
+        pathQuery.assertDocuments(FirestoreTest.serializer(), testOne, testTwo)
+    }
+
+    @Test
+    fun testQueryGreaterThanOrEqualTo() = runTest {
+        setupFirestoreData()
+
+        val fieldQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { "count" greaterThanOrEqualTo testThree.count }
+
+        fieldQuery.assertDocuments(FirestoreTest.serializer(), testThree)
+
+        val pathQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath(FirestoreTest::count.name) greaterThanOrEqualTo testTwo.count }
+
+        pathQuery.assertDocuments(FirestoreTest.serializer(), testTwo, testThree)
+    }
+
+    @Test
+    fun testQueryArrayContains() = runTest {
+        setupFirestoreData()
+
+        val fieldQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { "list" contains "a" }
+
+        fieldQuery.assertDocuments(FirestoreTest.serializer(), testOne)
+
+        val pathQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath(FirestoreTest::list.name) contains "ccc" }
+
+        pathQuery.assertDocuments(FirestoreTest.serializer(), testThree, testTwo)
+    }
+
+    @Test
+    fun testQueryArrayContainsAny() = runTest {
+        setupFirestoreData()
+
+        val fieldQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { "list" containsAny listOf("a", "b") }
+
+        fieldQuery.assertDocuments(FirestoreTest.serializer(), testOne, testTwo)
+
+        val pathQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath(FirestoreTest::list.name) containsAny listOf("c", "d") }
+
+        pathQuery.assertDocuments(FirestoreTest.serializer(), testThree)
+    }
+
+    @Test
+    fun testQueryInArray() = runTest {
+        setupFirestoreData()
+
+        val fieldQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { "prop1" inArray listOf("aaa", "bbb") }
+
+        fieldQuery.assertDocuments(FirestoreTest.serializer(), testOne, testTwo)
+
+        val pathQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath(FirestoreTest::prop1.name) inArray listOf("ccc", "ddd") }
+
+        pathQuery.assertDocuments(FirestoreTest.serializer(), testThree)
+    }
+
+    @Test
+    fun testQueryNotInArray() = runTest {
+        setupFirestoreData()
+
+        val fieldQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { "prop1" notInArray listOf("aaa", "bbb") }
+
+        fieldQuery.assertDocuments(FirestoreTest.serializer(), testThree)
+
+        val pathQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath(FirestoreTest::prop1.name) notInArray listOf("ccc", "ddd") }
+
+        pathQuery.assertDocuments(FirestoreTest.serializer(), testOne, testTwo)
+    }
+
+    @Test
+    fun testCompoundQuery() = runTest {
+        setupFirestoreData()
+
+        val andQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where {
+                FieldPath(FirestoreTest::prop1.name) inArray listOf("aaa", "bbb") and (FieldPath(FirestoreTest::count.name) equalTo 1)
+            }
+        andQuery.assertDocuments(FirestoreTest.serializer(), testOne)
+
+        val orQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where {
+                FieldPath(FirestoreTest::prop1.name) equalTo "aaa" or (FieldPath(FirestoreTest::count.name) equalTo 2)
+            }
+        orQuery.assertDocuments(FirestoreTest.serializer(), testOne, testTwo)
+
+        val andOrQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where {
+                all(
+                    any(
+                        FieldPath(FirestoreTest::prop1.name) equalTo "aaa",
+                        FieldPath(FirestoreTest::count.name) equalTo 2,
+                    )!!,
+                    FieldPath(FirestoreTest::list.name) contains "a",
+                )
+            }
+        andOrQuery.assertDocuments(FirestoreTest.serializer(), testOne)
+    }
+
+    @Test
+    fun testQueryByDocumentId() = runTest {
+        setupFirestoreData()
+
+        val fieldQuery = firestore
+            .collection("testFirestoreQuerying")
+            .where { FieldPath.documentId equalTo "one" }
+        fieldQuery.assertDocuments(FirestoreTest.serializer(), testOne)
+    }
+
+    private suspend fun setupFirestoreData(
+        documentOne: FirestoreTest = testOne,
+        documentTwo: FirestoreTest = testTwo,
+        documentThree: FirestoreTest = testThree,
+    ) {
+        firestore.collection("testFirestoreQuerying")
+            .document("one")
+            .set(FirestoreTest.serializer(), documentOne)
+        firestore.collection("testFirestoreQuerying")
+            .document("two")
+            .set(FirestoreTest.serializer(), documentTwo)
+        firestore.collection("testFirestoreQuerying")
+            .document("three")
+            .set(FirestoreTest.serializer(), documentThree)
+    }
+
+    private suspend fun <T> Query.assertDocuments(serializer: KSerializer<T>, vararg expected: T) {
+        val documents = get().documents
+        assertEquals(expected.size, documents.size)
+        documents.forEachIndexed { index, documentSnapshot ->
+            assertEquals(expected[index], documentSnapshot.data(serializer))
+        }
     }
 
     private suspend fun nonSkippedDelay(timeout: Long) = withContext(Dispatchers.Default) {

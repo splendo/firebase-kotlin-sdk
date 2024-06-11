@@ -4,11 +4,19 @@
 
 package dev.gitlive.firebase.functions
 
-import dev.gitlive.firebase.*
-import dev.gitlive.firebase.functions.externals.*
+import dev.gitlive.firebase.DecodeSettings
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.FirebaseApp
+import dev.gitlive.firebase.FirebaseException
+import dev.gitlive.firebase.functions.externals.Functions
+import dev.gitlive.firebase.functions.externals.HttpsCallable
+import dev.gitlive.firebase.functions.externals.connectFunctionsEmulator
+import dev.gitlive.firebase.functions.externals.getFunctions
+import dev.gitlive.firebase.functions.externals.httpsCallable
+import dev.gitlive.firebase.functions.externals.invoke
+import dev.gitlive.firebase.internal.decode
 import kotlinx.coroutines.await
 import kotlinx.serialization.DeserializationStrategy
-import kotlinx.serialization.SerializationStrategy
 import kotlin.js.json
 import dev.gitlive.firebase.functions.externals.HttpsCallableResult as JsHttpsCallableResult
 
@@ -26,30 +34,30 @@ actual fun Firebase.functions(app: FirebaseApp, region: String) =
 
 actual class FirebaseFunctions internal constructor(val js: Functions) {
     actual fun httpsCallable(name: String, timeout: Long?) =
-        rethrow { HttpsCallableReference(httpsCallable(js, name, timeout?.let { json("timeout" to timeout.toDouble()) })) }
+        rethrow { HttpsCallableReference(httpsCallable(js, name, timeout?.let { json("timeout" to timeout.toDouble()) }).native) }
 
     actual fun useEmulator(host: String, port: Int) = connectFunctionsEmulator(js, host, port)
 }
 
-@Suppress("UNCHECKED_CAST")
-actual class HttpsCallableReference internal constructor(val js: HttpsCallable) : BaseHttpsCallableReference() {
-
-    actual suspend operator fun invoke() =
-        rethrow { HttpsCallableResult(js().await()) }
-
-    override suspend fun invoke(encodedData: Any): HttpsCallableResult = rethrow {
+@PublishedApi
+internal actual data class NativeHttpsCallableReference(val js: HttpsCallable) {
+    actual suspend fun invoke(encodedData: Any): HttpsCallableResult = rethrow {
         HttpsCallableResult(js(encodedData).await())
     }
+    actual suspend fun invoke(): HttpsCallableResult = rethrow { HttpsCallableResult(js().await()) }
 }
 
-actual class HttpsCallableResult constructor(val js: JsHttpsCallableResult) {
+internal val HttpsCallable.native get() = NativeHttpsCallableReference(this)
+
+val HttpsCallableReference.js: HttpsCallable get() = native.js
+
+actual class HttpsCallableResult(val js: JsHttpsCallableResult) {
 
     actual inline fun <reified T> data() =
         rethrow { decode<T>(value = js.data) }
 
-    actual fun <T> data(strategy: DeserializationStrategy<T>, decodeSettings: DecodeSettings) =
-        rethrow { decode(strategy, js.data, decodeSettings) }
-
+    actual inline fun <T> data(strategy: DeserializationStrategy<T>, buildSettings: DecodeSettings.Builder.() -> Unit) =
+        rethrow { decode(strategy, js.data, buildSettings) }
 }
 
 actual class FirebaseFunctionsException(cause: Throwable, val code: FunctionsExceptionCode, val details: Any?) : FirebaseException(cause.message, cause)
@@ -75,7 +83,7 @@ actual enum class FunctionsExceptionCode {
     INTERNAL,
     UNAVAILABLE,
     DATA_LOSS,
-    UNAUTHENTICATED
+    UNAUTHENTICATED,
 }
 
 inline fun <T, R> T.rethrow(function: T.() -> R): R = dev.gitlive.firebase.functions.rethrow { function() }
@@ -85,7 +93,7 @@ inline fun <R> rethrow(function: () -> R): R {
         return function()
     } catch (e: Exception) {
         throw e
-    } catch(e: dynamic) {
+    } catch (e: dynamic) {
         throw errorToException(e)
     }
 }

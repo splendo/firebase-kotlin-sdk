@@ -17,6 +17,8 @@ jobs:
       - uses: actions/checkout@v3
       - name: Setup test environment
         uses: ./.github/actions/setup_test_action
+      - name: run apiCheck
+        run: ./gradlew apiCheck
       - name: AVD cache
         uses: actions/cache@v3
         id: avd-cache
@@ -66,6 +68,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Setup test environment
         uses: ./.github/actions/setup_test_action
+        timeout-minutes: 10
       - name: Run JS Tests
         run: ./gradlew cleanTest jsTest
       - name: Upload JS test artifact
@@ -84,33 +87,55 @@ jobs:
           name: "Firebase Debug Log"
           path: "**/firebase-debug.log"
   build-ios:
-    runs-on: macos-13
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v3
       - name: Cocoapods cache
         uses: actions/cache@v3
-        id: cocoapods-cache
         with:
           path: |
             ~/.cocoapods
             ~/Library/Caches/CocoaPods
             */build/cocoapods
             */build/classes
-          key: cocoapods-cache
+          key: cocoapods-cache-v2
       - name: Setup test environment
         uses: ./.github/actions/setup_test_action
+      - name: ktLint
+        run: ./gradlew lintKotlin
       - name: Run iOS Tests
-        run: ./gradlew cleanTest iosX64Test
+        run: ./gradlew cleanTest iosSimulatorArm64Test
       - name: Upload iOS test artifact
         uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: "iOS Test Report HTML"
-          path: "**/build/reports/tests/iosX64Test/"
+          path: "**/build/reports/tests/iosSimulatorArm64Test/"
       - name: Upload Firebase Debug Log
         uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: "Firebase Debug Log"
           path: "**/firebase-debug.log"
-
+  build-jvm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup test environment
+        uses: ./.github/actions/setup_test_action
+        timeout-minutes: 10
+      - name: Run JVM Tests
+        run: ./gradlew cleanTest jvmTest
+      - name: Upload JVM test artifact
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: "JVM Test Report HTML"
+          path: |
+            **/build/reports/tests/jvmTest/
+      - name: Upload Firebase Debug Log
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: "Firebase Debug Log"
+          path: "**/firebase-debug.log"

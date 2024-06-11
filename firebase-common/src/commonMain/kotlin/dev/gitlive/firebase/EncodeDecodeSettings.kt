@@ -1,13 +1,11 @@
 package dev.gitlive.firebase
 
-import dev.gitlive.firebase.EncodeDecodeSettings.PolymorphicStructure
-import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 
 /**
  * Settings used to configure encoding/decoding
  */
-sealed class EncodeDecodeSettings {
+sealed interface EncodeDecodeSettings {
 
     /**
      * The structure in which Polymorphic classes are to be serialized
@@ -28,32 +26,40 @@ sealed class EncodeDecodeSettings {
     /**
      * The [SerializersModule] to use for serialization. This allows for polymorphic serialization on runtime
      */
-    abstract val serializersModule: SerializersModule
+    val serializersModule: SerializersModule
 
     /**
      * The [PolymorphicStructure] to use for encoding/decoding polymorphic classes
      */
-    abstract val polymorphicStructure: PolymorphicStructure
+    val polymorphicStructure: PolymorphicStructure
 }
 
 /**
  * [EncodeDecodeSettings] used when encoding an object
- * @property shouldEncodeElementDefault if `true` this will explicitly encode elements even if they are their default value
- * @param serializersModule the [SerializersModule] to use for serialization. This allows for polymorphic serialization on runtime
- * @param polymorphicStructure the [PolymorphicStructure] to use for encoding polymorphic classes
+ * @property encodeDefaults if `true` this will explicitly encode elements even if they are their default value
  */
-data class EncodeSettings(
-    val shouldEncodeElementDefault: Boolean = true,
-    override val serializersModule: SerializersModule = EmptySerializersModule(),
-    override val polymorphicStructure: PolymorphicStructure = PolymorphicStructure.MAP
-) : EncodeDecodeSettings()
+interface EncodeSettings : EncodeDecodeSettings {
+
+    val encodeDefaults: Boolean
+
+    interface Builder {
+        var encodeDefaults: Boolean
+        var serializersModule: SerializersModule
+        var polymorphicStructure: EncodeDecodeSettings.PolymorphicStructure
+
+    }
+}
 
 /**
  * [EncodeDecodeSettings] used when decoding an object
  * @param serializersModule the [SerializersModule] to use for deserialization. This allows for polymorphic serialization on runtime
- * @param polymorphicStructure the [PolymorphicStructure] to use for decoding polymorphic classes
  */
-data class DecodeSettings(
-    override val serializersModule: SerializersModule = EmptySerializersModule(),
-    override val polymorphicStructure: PolymorphicStructure = PolymorphicStructure.MAP
-) : EncodeDecodeSettings()
+interface DecodeSettings : EncodeDecodeSettings {
+
+    interface Builder {
+        var serializersModule: SerializersModule
+        var polymorphicStructure: EncodeDecodeSettings.PolymorphicStructure
+    }
+}
+
+interface EncodeDecodeSettingsBuilder : EncodeSettings.Builder, DecodeSettings.Builder

@@ -1,6 +1,5 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 repositories {
     google()
@@ -11,7 +10,9 @@ plugins {
     kotlin("multiplatform") apply false
     kotlin("native.cocoapods") apply false
     id("base")
-    id("com.github.ben-manes.versions") version "0.42.0"
+    id("com.github.ben-manes.versions") version "0.51.0"
+    id("org.jmailen.kotlinter") version "4.3.0" apply false
+    id("org.jetbrains.kotlinx.binary-compatibility-validator") version "0.15.0-Beta.2"
 }
 
 buildscript {
@@ -55,6 +56,7 @@ subprojects {
     group = "dev.gitlive"
     
     apply(plugin = "com.adarshr.test-logger")
+    apply(plugin = "org.jmailen.kotlinter")
 
     repositories {
         mavenLocal()
@@ -117,7 +119,7 @@ subprojects {
             "commonTestImplementation"(kotlin("test-common"))
             "commonTestImplementation"(kotlin("test-annotations-common"))
             if (this@afterEvaluate.name != "firebase-crashlytics") {
-                "jvmMainApi"("dev.gitlive:firebase-java-sdk:0.1.2")
+                "jvmMainApi"("dev.gitlive:firebase-java-sdk:0.4.3")
                 "jvmMainApi"("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:$coroutinesVersion") {
                     exclude("com.google.android.gms")
                 }

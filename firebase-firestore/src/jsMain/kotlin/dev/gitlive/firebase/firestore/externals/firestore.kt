@@ -8,12 +8,10 @@ import dev.gitlive.firebase.externals.FirebaseApp
 import kotlin.js.Json
 import kotlin.js.Promise
 
-external class FieldPath(vararg fieldNames: String) {
-    companion object {
-        val documentId: FieldPath
-    }
-    fun isEqual(other: FieldPath): Boolean
+external fun documentId(): FieldPath
 
+external class FieldPath(vararg fieldNames: String) {
+    fun isEqual(other: FieldPath): Boolean
 }
 
 external fun refEqual(left: DocumentReference, right: DocumentReference): Boolean
@@ -36,7 +34,7 @@ external fun connectFirestoreEmulator(
     firestore: Firestore,
     host: String,
     port: Int,
-    options: Any? = definedExternally
+    options: Any? = definedExternally,
 )
 
 external fun deleteDoc(reference: DocumentReference): Promise<Unit>
@@ -51,7 +49,7 @@ external fun doc(firestore: CollectionReference, documentPath: String? = defined
 
 external fun enableIndexedDbPersistence(
     firestore: Firestore,
-    persistenceSettings: Any? = definedExternally
+    persistenceSettings: Any? = definedExternally,
 ): Promise<Unit>
 
 external fun enableNetwork(firestore: Firestore): Promise<Unit>
@@ -66,43 +64,55 @@ external fun endBefore(vararg fieldValues: Any): QueryConstraint
 
 external fun getDoc(
     reference: DocumentReference,
-    options: Any? = definedExternally
+    options: Any? = definedExternally,
+): Promise<DocumentSnapshot>
+
+external fun getDocFromCache(
+    reference: DocumentReference,
+): Promise<DocumentSnapshot>
+
+external fun getDocFromServer(
+    reference: DocumentReference,
 ): Promise<DocumentSnapshot>
 
 external fun getDocs(query: Query): Promise<QuerySnapshot>
+
+external fun getDocsFromCache(query: Query): Promise<QuerySnapshot>
+
+external fun getDocsFromServer(query: Query): Promise<QuerySnapshot>
 
 external fun getFirestore(app: FirebaseApp? = definedExternally): Firestore
 
 external fun increment(n: Int): FieldValue
 
-external fun initializeFirestore(app: FirebaseApp, settings: Any): Firestore
+external fun initializeFirestore(app: FirebaseApp, settings: dynamic = definedExternally, databaseId: String? = definedExternally): Firestore
 
 external fun limit(limit: Number): QueryConstraint
 
 external fun onSnapshot(
     reference: DocumentReference,
     next: (snapshot: DocumentSnapshot) -> Unit,
-    error: (error: Throwable) -> Unit
+    error: (error: Throwable) -> Unit,
 ): Unsubscribe
 
 external fun onSnapshot(
     reference: DocumentReference,
     options: Json,
     next: (snapshot: DocumentSnapshot) -> Unit,
-    error: (error: Throwable) -> Unit
+    error: (error: Throwable) -> Unit,
 ): Unsubscribe
 
 external fun onSnapshot(
     reference: Query,
     next: (snapshot: QuerySnapshot) -> Unit,
-    error: (error: Throwable) -> Unit
+    error: (error: Throwable) -> Unit,
 ): Unsubscribe
 
 external fun onSnapshot(
     reference: Query,
     options: Json,
     next: (snapshot: QuerySnapshot) -> Unit,
-    error: (error: Throwable) -> Unit
+    error: (error: Throwable) -> Unit,
 ): Unsubscribe
 
 external fun orderBy(field: String, direction: Any): QueryConstraint
@@ -114,7 +124,7 @@ external fun query(query: Query, vararg queryConstraints: QueryConstraint): Quer
 external fun <T> runTransaction(
     firestore: Firestore,
     updateFunction: (transaction: Transaction) -> Promise<T>,
-    options: Any? = definedExternally
+    options: Any? = definedExternally,
 ): Promise<T>
 
 external fun serverTimestamp(): FieldValue
@@ -122,7 +132,7 @@ external fun serverTimestamp(): FieldValue
 external fun setDoc(
     documentReference: DocumentReference,
     data: Any,
-    options: Any? = definedExternally
+    options: Any? = definedExternally,
 ): Promise<Unit>
 
 external fun setLogLevel(logLevel: String)
@@ -141,19 +151,23 @@ external fun updateDoc(
     reference: DocumentReference,
     field: String,
     value: Any?,
-    vararg moreFieldsAndValues: Any?
+    vararg moreFieldsAndValues: Any?,
 ): Promise<Unit>
 
 external fun updateDoc(
     reference: DocumentReference,
     field: FieldPath,
     value: Any?,
-    vararg moreFieldsAndValues: Any?
+    vararg moreFieldsAndValues: Any?,
 ): Promise<Unit>
 
 external fun where(field: String, opStr: String, value: Any?): QueryConstraint
 
 external fun where(field: FieldPath, opStr: String, value: Any?): QueryConstraint
+
+external fun and(vararg queryConstraints: QueryConstraint): QueryConstraint
+
+external fun or(vararg queryConstraints: QueryConstraint): QueryConstraint
 
 external fun writeBatch(firestore: Firestore): WriteBatch
 
@@ -222,7 +236,7 @@ external interface Transaction {
     fun set(
         documentReference: DocumentReference,
         data: Any,
-        options: Any? = definedExternally
+        options: Any? = definedExternally,
     ): Transaction
 
     fun update(documentReference: DocumentReference, data: Any): Transaction
@@ -231,14 +245,14 @@ external interface Transaction {
         documentReference: DocumentReference,
         field: String,
         value: Any?,
-        vararg moreFieldsAndValues: Any?
+        vararg moreFieldsAndValues: Any?,
     ): Transaction
 
     fun update(
         documentReference: DocumentReference,
         field: FieldPath,
         value: Any?,
-        vararg moreFieldsAndValues: Any?
+        vararg moreFieldsAndValues: Any?,
     ): Transaction
 
     fun delete(documentReference: DocumentReference): Transaction
@@ -252,7 +266,7 @@ external interface WriteBatch {
     fun set(
         documentReference: DocumentReference,
         data: Any,
-        options: Any? = definedExternally
+        options: Any? = definedExternally,
     ): WriteBatch
 
     fun update(documentReference: DocumentReference, data: Any): WriteBatch
@@ -261,14 +275,14 @@ external interface WriteBatch {
         documentReference: DocumentReference,
         field: String,
         value: Any?,
-        vararg moreFieldsAndValues: Any?
+        vararg moreFieldsAndValues: Any?,
     ): WriteBatch
 
     fun update(
         documentReference: DocumentReference,
         field: FieldPath,
         value: Any?,
-        vararg moreFieldsAndValues: Any?
+        vararg moreFieldsAndValues: Any?,
     ): WriteBatch
 }
 
@@ -283,3 +297,37 @@ external class Timestamp(seconds: Double, nanoseconds: Double) {
 
     fun isEqual(other: Timestamp): Boolean
 }
+
+external interface FirestoreLocalCache {
+    val kind: String
+}
+
+external interface MemoryLocalCache : FirestoreLocalCache
+external interface PersistentLocalCache : FirestoreLocalCache
+
+external interface MemoryCacheSettings {
+    val garbageCollector: MemoryGarbageCollector
+}
+
+external interface MemoryGarbageCollector {
+    val kind: String
+}
+
+external interface MemoryLruGarbageCollector : MemoryGarbageCollector
+external interface MemoryEagerGarbageCollector : MemoryGarbageCollector
+
+external interface PersistentCacheSettings {
+    val cacheSizeBytes: Int
+    val tabManager: PersistentTabManager
+}
+
+external interface PersistentTabManager {
+    val kind: String
+}
+
+external fun memoryLocalCache(settings: MemoryCacheSettings): MemoryLocalCache
+external fun memoryEagerGarbageCollector(): MemoryEagerGarbageCollector
+external fun memoryLruGarbageCollector(settings: dynamic = definedExternally): MemoryLruGarbageCollector
+external fun persistentLocalCache(settings: PersistentCacheSettings): PersistentLocalCache
+external fun persistentSingleTabManager(settings: dynamic = definedExternally): PersistentTabManager
+external fun persistentMultipleTabManager(): PersistentTabManager

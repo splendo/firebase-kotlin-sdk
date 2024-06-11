@@ -17,4 +17,3 @@ actual fun encodedAsMap(encoded: Any?): Map<String, Any?> {
 }
 actual fun Map<String, Any?>.asEncoded(): Any =
     json(*entries.map { (key, value) -> key to value }.toTypedArray())
-

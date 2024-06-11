@@ -7,9 +7,9 @@ import dev.gitlive.firebase.EncodeSettings
 internal expect fun isSpecialValue(value: Any): Boolean
 
 @PublishedApi
-internal inline fun <reified T> encode(value: T, encodeSettings: EncodeSettings) =
+internal inline fun <reified T> encode(value: T, buildSettings: EncodeSettings.Builder.() -> Unit) =
     if (value?.let(::isSpecialValue) == true) {
         value
     } else {
-        dev.gitlive.firebase.encode(value, encodeSettings)
+        dev.gitlive.firebase.internal.encode(value, buildSettings)
     }
