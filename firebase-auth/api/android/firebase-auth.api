@@ -97,14 +97,19 @@ public final class dev/gitlive/firebase/auth/FacebookAuthProvider {
 public final class dev/gitlive/firebase/auth/FirebaseAuth {
 	public final fun applyActionCode (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun checkActionCode (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun component1 ()Lcom/google/firebase/auth/FirebaseAuth;
 	public final fun confirmPasswordReset (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun copy (Lcom/google/firebase/auth/FirebaseAuth;)Ldev/gitlive/firebase/auth/FirebaseAuth;
+	public static synthetic fun copy$default (Ldev/gitlive/firebase/auth/FirebaseAuth;Lcom/google/firebase/auth/FirebaseAuth;ILjava/lang/Object;)Ldev/gitlive/firebase/auth/FirebaseAuth;
 	public final fun createUserWithEmailAndPassword (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun equals (Ljava/lang/Object;)Z
 	public final fun fetchSignInMethodsForEmail (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun getAndroid ()Lcom/google/firebase/auth/FirebaseAuth;
 	public final fun getAuthStateChanged ()Lkotlinx/coroutines/flow/Flow;
 	public final fun getCurrentUser ()Ldev/gitlive/firebase/auth/FirebaseUser;
 	public final fun getIdTokenChanged ()Lkotlinx/coroutines/flow/Flow;
 	public final fun getLanguageCode ()Ljava/lang/String;
+	public fun hashCode ()I
 	public final fun isSignInWithEmailLink (Ljava/lang/String;)Z
 	public final fun sendPasswordResetEmail (Ljava/lang/String;Ldev/gitlive/firebase/auth/ActionCodeSettings;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun sendPasswordResetEmail$default (Ldev/gitlive/firebase/auth/FirebaseAuth;Ljava/lang/String;Ldev/gitlive/firebase/auth/ActionCodeSettings;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
@@ -116,6 +121,7 @@ public final class dev/gitlive/firebase/auth/FirebaseAuth {
 	public final fun signInWithEmailAndPassword (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun signInWithEmailLink (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun signOut (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun toString ()Ljava/lang/String;
 	public final fun updateCurrentUser (Ldev/gitlive/firebase/auth/FirebaseUser;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun useEmulator (Ljava/lang/String;I)V
 	public final fun verifyPasswordResetCode (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

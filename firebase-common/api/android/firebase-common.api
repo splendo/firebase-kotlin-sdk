@@ -2,12 +2,23 @@ public abstract interface class dev/gitlive/firebase/DecodeSettings : dev/gitliv
 }
 
 public abstract interface class dev/gitlive/firebase/DecodeSettings$Builder {
+	public abstract fun getPolymorphicStructure ()Ldev/gitlive/firebase/EncodeDecodeSettings$PolymorphicStructure;
 	public abstract fun getSerializersModule ()Lkotlinx/serialization/modules/SerializersModule;
+	public abstract fun setPolymorphicStructure (Ldev/gitlive/firebase/EncodeDecodeSettings$PolymorphicStructure;)V
 	public abstract fun setSerializersModule (Lkotlinx/serialization/modules/SerializersModule;)V
 }
 
 public abstract interface class dev/gitlive/firebase/EncodeDecodeSettings {
+	public abstract fun getPolymorphicStructure ()Ldev/gitlive/firebase/EncodeDecodeSettings$PolymorphicStructure;
 	public abstract fun getSerializersModule ()Lkotlinx/serialization/modules/SerializersModule;
+}
+
+public final class dev/gitlive/firebase/EncodeDecodeSettings$PolymorphicStructure : java/lang/Enum {
+	public static final field LIST Ldev/gitlive/firebase/EncodeDecodeSettings$PolymorphicStructure;
+	public static final field MAP Ldev/gitlive/firebase/EncodeDecodeSettings$PolymorphicStructure;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/gitlive/firebase/EncodeDecodeSettings$PolymorphicStructure;
+	public static fun values ()[Ldev/gitlive/firebase/EncodeDecodeSettings$PolymorphicStructure;
 }
 
 public abstract interface class dev/gitlive/firebase/EncodeDecodeSettingsBuilder : dev/gitlive/firebase/DecodeSettings$Builder, dev/gitlive/firebase/EncodeSettings$Builder {
@@ -19,8 +30,10 @@ public abstract interface class dev/gitlive/firebase/EncodeSettings : dev/gitliv
 
 public abstract interface class dev/gitlive/firebase/EncodeSettings$Builder {
 	public abstract fun getEncodeDefaults ()Z
+	public abstract fun getPolymorphicStructure ()Ldev/gitlive/firebase/EncodeDecodeSettings$PolymorphicStructure;
 	public abstract fun getSerializersModule ()Lkotlinx/serialization/modules/SerializersModule;
 	public abstract fun setEncodeDefaults (Z)V
+	public abstract fun setPolymorphicStructure (Ldev/gitlive/firebase/EncodeDecodeSettings$PolymorphicStructure;)V
 	public abstract fun setSerializersModule (Lkotlinx/serialization/modules/SerializersModule;)V
 }
 
