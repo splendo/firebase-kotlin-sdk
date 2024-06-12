@@ -10,7 +10,6 @@ import dev.gitlive.firebase.apps
 import dev.gitlive.firebase.initialize
 import dev.gitlive.firebase.runTest
 import kotlin.test.*
-import kotlin.time.Duration.Companion.minutes
 
 actual val emulatorHost: String = "localhost"
 

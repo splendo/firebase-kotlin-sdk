@@ -118,7 +118,7 @@ private suspend inline fun <T, reified R> T.awaitResult(
 ): R {
     val job = CompletableDeferred<R?>()
     function { result: R?, error: NSError? ->
-        if(error == null) {
+        if (error == null) {
             job.complete(result)
         } else {
             job.completeExceptionally(error.toException())
@@ -130,7 +130,7 @@ private suspend inline fun <T, reified R> T.awaitResult(
 private suspend inline fun <T> T.await(function: T.(callback: (NSError?) -> Unit) -> Unit) {
     val job = CompletableDeferred<Unit>()
     function { error: NSError? ->
-        if(error == null) {
+        if (error == null) {
             job.complete(Unit)
         } else {
             job.completeExceptionally(error.toException())

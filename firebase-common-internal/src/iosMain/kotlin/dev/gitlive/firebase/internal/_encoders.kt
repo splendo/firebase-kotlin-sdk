@@ -10,11 +10,11 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
 import kotlin.collections.set
 
-actual fun FirebaseEncoder.structureEncoder(descriptor: SerialDescriptor): FirebaseCompositeEncoder = when(descriptor.kind) {
+actual fun FirebaseEncoder.structureEncoder(descriptor: SerialDescriptor): FirebaseCompositeEncoder = when (descriptor.kind) {
     StructureKind.LIST -> encodeAsList()
     StructureKind.MAP -> mutableListOf<Any?>()
         .let { FirebaseCompositeEncoder(settings, { value = it.chunked(2).associate { (k, v) -> k to v } }) { _, _, value -> it.add(value) } }
-    StructureKind.CLASS,  StructureKind.OBJECT-> encodeAsMap(descriptor)
+    StructureKind.CLASS, StructureKind.OBJECT -> encodeAsMap(descriptor)
     is PolymorphicKind -> when (settings.polymorphicStructure) {
         EncodeDecodeSettings.PolymorphicStructure.MAP -> encodeAsMap(descriptor)
         EncodeDecodeSettings.PolymorphicStructure.LIST -> encodeAsList()
@@ -33,6 +33,6 @@ private fun FirebaseEncoder.encodeAsMap(descriptor: SerialDescriptor): FirebaseC
             setPolymorphicType = { discriminator, type ->
                 it[discriminator] = type
             },
-            set = { _, index, value -> it[descriptor.getElementName(index)] = value }
+            set = { _, index, value -> it[descriptor.getElementName(index)] = value },
         )
     }

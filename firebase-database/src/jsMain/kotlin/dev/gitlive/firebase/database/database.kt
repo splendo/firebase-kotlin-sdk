@@ -57,7 +57,6 @@ import dev.gitlive.firebase.database.externals.orderByKey as jsOrderByKey
 import dev.gitlive.firebase.database.externals.orderByValue as jsOrderByValue
 import dev.gitlive.firebase.database.externals.runTransaction as jsRunTransaction
 import dev.gitlive.firebase.database.externals.startAt as jsStartAt
-import dev.gitlive.firebase.database.externals.runTransaction as jsRunTransaction
 
 actual val Firebase.database
     get() = rethrow { FirebaseDatabase(getDatabase()) }

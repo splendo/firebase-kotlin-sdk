@@ -19,7 +19,7 @@ internal fun <T> FirebaseEncoder.encodePolymorphically(
     serializer: SerializationStrategy<T>,
     value: T,
     settings: EncodeSettings,
-    ifPolymorphic: (String) -> Unit
+    ifPolymorphic: (String) -> Unit,
 ) {
     // If serializer is not an AbstractPolymorphicSerializer or if we are encoding this as a list, we can just use the regular serializer
     // This will result in calling structureEncoder for complicated structures
@@ -53,7 +53,7 @@ internal fun <T> FirebaseDecoder.decodeSerializableValuePolymorphic(
     val type = getPolymorphicType(value, discriminator)
     val actualDeserializer = casted.findPolymorphicSerializerOrNull(
         structureDecoder(deserializer.descriptor, false),
-        type
+        type,
     ) as DeserializationStrategy<T>
     return actualDeserializer.deserialize(this)
 }

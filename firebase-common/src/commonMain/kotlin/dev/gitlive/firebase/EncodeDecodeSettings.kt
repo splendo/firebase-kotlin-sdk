@@ -20,7 +20,7 @@ sealed interface EncodeDecodeSettings {
         /**
          * A [PolymorphicStructure] where the polymorphic class is serialized as a List, with the polymorphic discriminator as its first element and the serialized object as its second element
          */
-        LIST
+        LIST,
     }
 
     /**
@@ -46,7 +46,6 @@ interface EncodeSettings : EncodeDecodeSettings {
         var encodeDefaults: Boolean
         var serializersModule: SerializersModule
         var polymorphicStructure: EncodeDecodeSettings.PolymorphicStructure
-
     }
 }
 

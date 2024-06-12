@@ -616,9 +616,9 @@ class FirebaseFirestoreTest {
             strategy = FirestoreTest.serializer(),
             data = FirestoreTest(
                 prop1 = "prop1-set",
-                time = 125.0
+                time = 125.0,
             ),
-            fieldsAndValues = arrayOf<Pair<String, Any>>()
+            fieldsAndValues = arrayOf<Pair<String, Any>>(),
         )
         batch.commit()
 
@@ -634,11 +634,10 @@ class FirebaseFirestoreTest {
                 set(
                     FirestoreTest(
                         prop1 = "prop1",
-                        time = 123.0
-                    )
+                        time = 123.0,
+                    ),
                 )
             }
-
 
         val batch = firestore.batch()
         batch.update(
@@ -646,12 +645,12 @@ class FirebaseFirestoreTest {
             strategy = FirestoreTest.serializer(),
             data = FirestoreTest(
                 prop1 = "prop1-updated",
-                time = 123.0
+                time = 123.0,
             ),
             encodeSettings = EncodeSettings(shouldEncodeElementDefault = false),
             fieldsAndValues = arrayOf(
-                "time" to FieldValue.delete
-            )
+                "time" to FieldValue.delete,
+            ),
         )
         batch.commit()
 
@@ -667,8 +666,8 @@ class FirebaseFirestoreTest {
                 set(
                     FirestoreTest(
                         prop1 = "prop1",
-                        time = 123.0
-                    )
+                        time = 123.0,
+                    ),
                 )
             }
         val batch = firestore.batch()
@@ -677,17 +676,16 @@ class FirebaseFirestoreTest {
             strategy = FirestoreTest.serializer(),
             data = FirestoreTest(
                 prop1 = "prop1-set",
-                time = 126.0
+                time = 126.0,
             ),
             encodeSettings = EncodeSettings(shouldEncodeElementDefault = false),
-            fieldsAndValues = arrayOf<Pair<String, Any>>()
+            fieldsAndValues = arrayOf<Pair<String, Any>>(),
         )
         batch.commit()
 
         assertEquals(126.0, doc.get().get("time") as Double?)
         assertEquals("prop1-set", doc.get().data(FirestoreTest.serializer()).prop1)
     }
-
 
     @Test
     fun testLegacyDoubleTimestampWriteNewFormatRead() = runTest {

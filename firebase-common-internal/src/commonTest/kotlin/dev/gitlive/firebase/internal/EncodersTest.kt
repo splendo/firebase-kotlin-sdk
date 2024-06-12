@@ -316,7 +316,7 @@ class EncodersTest {
         }
         val testDataEncoded = nativeMapOf("map" to nativeMapOf("key" to "value"), "otherMap" to nativeMapOf(1 to 1), "bool" to true, "nullableBool" to null, "valueClass" to 42)
         val sealedEncoded = nativeListOf("test", nativeMapOf("value" to "value"))
-        val abstractEncoded =nativeListOf("implemented", nativeMapOf("abstractValue" to "value", "otherValue" to true))
+        val abstractEncoded = nativeListOf("implemented", nativeMapOf("abstractValue" to "value", "otherValue" to true))
         nativeAssertEquals(
             nativeMapOf(
                 "testData" to testDataEncoded,
@@ -327,9 +327,9 @@ class EncodersTest {
                 "abstractList" to nativeListOf(abstractEncoded),
                 "testDataMap" to nativeMapOf(testDataEncoded to testDataEncoded),
                 "sealedMap" to nativeMapOf(sealedEncoded to sealedEncoded),
-                "abstractMap" to nativeMapOf(abstractEncoded to abstractEncoded)
+                "abstractMap" to nativeMapOf(abstractEncoded to abstractEncoded),
             ),
-            encoded
+            encoded,
         )
 
         val decoded = decode(NestedClass.serializer(), encoded) {
@@ -440,7 +440,7 @@ class EncodersTest {
             nativeListOf("test", nativeMapOf("value" to "value")),
             builder = {
                 polymorphicStructure = EncodeDecodeSettings.PolymorphicStructure.LIST
-            }
+            },
         ) {
             assertEquals(SealedClass.Test("value"), it)
             SealedClass.Test("newTest")

@@ -19,7 +19,7 @@ actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor, polymo
     StructureKind.MAP -> (value as? Map<*, *>).orEmpty().entries.toList().let {
         FirebaseCompositeDecoder(
             it.size,
-            settings
+            settings,
         ) { _, index -> it[index / 2].run { if (index % 2 == 0) key else value } }
     }
 
@@ -32,7 +32,7 @@ actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor, polymo
 }
 
 actual fun getPolymorphicType(value: Any?, discriminator: String): String =
-    (value as? Map<*,*>).orEmpty()[discriminator] as String
+    (value as? Map<*, *>).orEmpty()[discriminator] as String
 
 private fun FirebaseDecoder.decodeAsList(): CompositeDecoder = (value as? List<*>).orEmpty().let {
     FirebaseCompositeDecoder(it.size, settings) { _, index -> it[index] }
@@ -40,9 +40,9 @@ private fun FirebaseDecoder.decodeAsList(): CompositeDecoder = (value as? List<*
 private fun FirebaseDecoder.decodeAsMap(isNestedPolymorphic: Boolean): CompositeDecoder = (value as? Map<*, *>).orEmpty().let { map ->
     FirebaseClassDecoder(map.size, settings, { map.containsKey(it) }) { desc, index ->
         if (isNestedPolymorphic) {
-            if (index == 0)
+            if (index == 0) {
                 map[desc.getElementName(index)]
-            else {
+            } else {
                 map
             }
         } else {
