@@ -29,8 +29,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.valueOf(libs.versions.build.android.javaVersion.get())
+        targetCompatibility = JavaVersion.valueOf(libs.versions.build.android.javaVersion.get())
     }
 
     testOptions.configureTestOptions()
@@ -56,7 +56,7 @@ kotlin {
             compileTaskProvider.configure {
                 compilerOptions {
                     if (this is KotlinJvmCompilerOptions) {
-                        jvmTarget = JvmTarget.JVM_17
+                        jvmTarget = JvmTarget.fromTarget(libs.versions.build.kotlin.jvmTarget.get())
                     }
                     freeCompilerArgs.add("-Xexpect-actual-classes")
                 }
@@ -79,7 +79,7 @@ kotlin {
         iosSimulatorArm64()
 
         cocoapods {
-            ios.deploymentTarget = "12.0"
+            ios.deploymentTarget = libs.versions.build.ios.deploymentTarget.get()
             framework {
                 baseName = "FirebaseApp"
             }
