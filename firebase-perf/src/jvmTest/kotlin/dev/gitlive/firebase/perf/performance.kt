@@ -3,15 +3,12 @@
  */
 
 @file:JvmName("tests")
+
 package dev.gitlive.firebase.perf
 
-import android.content.Context
-import com.google.firebase.FirebasePlatform
-import dev.gitlive.firebase.MockFirebasePlatform
+import dev.gitlive.firebase.testContext
 
-actual val emulatorHost: String = "10.0.2.2"
-
-actual val context: Any get() = Context().also { FirebasePlatform.initializeFirebasePlatform(MockFirebasePlatform()) }
+actual val context: Any = testContext
 
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 actual annotation class IgnoreForAndroidUnitTest

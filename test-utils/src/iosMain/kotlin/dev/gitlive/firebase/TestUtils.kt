@@ -20,7 +20,7 @@ actual fun runTest(test: suspend CoroutineScope.() -> Unit) = runBlocking {
     while (testRun.isActive) {
         NSRunLoop.mainRunLoop.runMode(
             NSDefaultRunLoopMode,
-            beforeDate = NSDate.create(timeInterval = 1.0, sinceDate = NSDate())
+            beforeDate = NSDate.create(timeInterval = 1.0, sinceDate = NSDate()),
         )
         yield()
     }
@@ -28,7 +28,7 @@ actual fun runTest(test: suspend CoroutineScope.() -> Unit) = runBlocking {
 }
 actual fun runBlockingTest(action: suspend CoroutineScope.() -> Unit) = runBlocking(block = action)
 actual fun nativeMapOf(vararg pairs: Pair<Any, Any?>): Any = mapOf(*pairs)
-actual fun nativeListOf(vararg elements: Any): Any = listOf(*elements)
+actual fun nativeListOf(vararg elements: Any?): Any = listOf(*elements)
 actual fun nativeAssertEquals(expected: Any?, actual: Any?) {
     kotlin.test.assertEquals(expected, actual)
 }

@@ -8,8 +8,7 @@ expect annotation class IgnoreForAndroidUnitTest()
 
 @IgnoreForAndroidUnitTest
 class FirebaseAppTest {
-    
-    @IgnoreForAndroidUnitTest
+
     @Test
     fun testInitialize() = runTest {
         Firebase.initialize(
@@ -20,8 +19,8 @@ class FirebaseAppTest {
                 databaseUrl = "https://fir-kotlin-sdk.firebaseio.com",
                 storageBucket = "fir-kotlin-sdk.appspot.com",
                 projectId = "fir-kotlin-sdk",
-                gcmSenderId = "846484016111"
-            )
+                gcmSenderId = "846484016111",
+            ),
         )
 
         assertEquals(1, Firebase.apps(context).size)
@@ -30,5 +29,4 @@ class FirebaseAppTest {
             it.delete()
         }
     }
-
 }
