@@ -7,29 +7,29 @@ import dev.gitlive.firebase.FirebaseException
 import kotlinx.coroutines.CompletableDeferred
 import platform.Foundation.*
 
-actual val Firebase.installations
+public actual val Firebase.installations: FirebaseInstallations
     get() = FirebaseInstallations(FIRInstallations.installations())
 
-actual fun Firebase.installations(app: FirebaseApp): FirebaseInstallations = FirebaseInstallations(
+public actual fun Firebase.installations(app: FirebaseApp): FirebaseInstallations = FirebaseInstallations(
     FIRInstallations.installationsWithApp(app.ios as objcnames.classes.FIRApp),
 )
 
-actual class FirebaseInstallations internal constructor(val ios: FIRInstallations) {
+public actual class FirebaseInstallations internal constructor(public val ios: FIRInstallations) {
 
-    actual suspend fun delete() = ios.await { deleteWithCompletion(completion = it) }
+    public actual suspend fun delete(): Unit = ios.await { deleteWithCompletion(completion = it) }
 
-    actual suspend fun getId(): String = ios.awaitResult { installationIDWithCompletion(completion = it) }
+    public actual suspend fun getId(): String = ios.awaitResult { installationIDWithCompletion(completion = it) }
 
-    actual suspend fun getToken(forceRefresh: Boolean): String {
+    public actual suspend fun getToken(forceRefresh: Boolean): String {
         val result: FIRInstallationsAuthTokenResult = ios.awaitResult { authTokenForcingRefresh(forceRefresh = forceRefresh, completion = it) }
 
         return result.authToken
     }
 }
 
-actual class FirebaseInstallationsException(message: String) : FirebaseException(message)
+public actual class FirebaseInstallationsException(message: String) : FirebaseException(message)
 
-suspend inline fun <T> T.await(function: T.(callback: (NSError?) -> Unit) -> Unit) {
+internal suspend inline fun <T> T.await(function: T.(callback: (NSError?) -> Unit) -> Unit) {
     val job = CompletableDeferred<Unit>()
     function { error ->
         if (error == null) {
@@ -41,7 +41,7 @@ suspend inline fun <T> T.await(function: T.(callback: (NSError?) -> Unit) -> Uni
     job.await()
 }
 
-suspend inline fun <T, reified R> T.awaitResult(function: T.(callback: (R?, NSError?) -> Unit) -> Unit): R {
+internal suspend inline fun <T, reified R> T.awaitResult(function: T.(callback: (R?, NSError?) -> Unit) -> Unit): R {
     val job = CompletableDeferred<R?>()
     function { result, error ->
         if (error == null) {
