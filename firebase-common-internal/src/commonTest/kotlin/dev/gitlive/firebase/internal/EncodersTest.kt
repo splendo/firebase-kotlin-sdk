@@ -4,7 +4,6 @@
 
 package dev.gitlive.firebase.internal
 
-import dev.gitlive.firebase.EncodeDecodeSettings
 import dev.gitlive.firebase.nativeAssertEquals
 import dev.gitlive.firebase.nativeListOf
 import dev.gitlive.firebase.nativeMapOf

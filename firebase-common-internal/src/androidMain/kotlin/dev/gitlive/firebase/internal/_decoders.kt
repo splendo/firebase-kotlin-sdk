@@ -4,7 +4,6 @@
 
 package dev.gitlive.firebase.internal
 
-import dev.gitlive.firebase.EncodeDecodeSettings
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind

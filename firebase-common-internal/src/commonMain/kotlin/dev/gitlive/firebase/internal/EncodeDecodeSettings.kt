@@ -1,7 +1,6 @@
 package dev.gitlive.firebase.internal
 
 import dev.gitlive.firebase.DecodeSettings
-import dev.gitlive.firebase.EncodeDecodeSettings
 import dev.gitlive.firebase.EncodeDecodeSettingsBuilder
 import dev.gitlive.firebase.EncodeSettings
 import kotlinx.serialization.modules.EmptySerializersModule
