@@ -3,498 +3,199 @@
  */
 
 @file:JvmName("android")
+
 package dev.gitlive.firebase.firestore
 
-import com.google.android.gms.tasks.Task
-import com.google.firebase.firestore.*
-import dev.gitlive.firebase.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.tasks.asDeferred
-import kotlinx.coroutines.tasks.await
-import kotlinx.serialization.DeserializationStrategy
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.SerializationStrategy
+import com.google.android.gms.tasks.TaskExecutors
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.FirebaseApp
+import dev.gitlive.firebase.android
+import dev.gitlive.firebase.firestore.internal.NativeDocumentSnapshotWrapper
+import java.util.concurrent.Executor
+import com.google.firebase.firestore.CollectionReference as AndroidCollectionReference
+import com.google.firebase.firestore.DocumentChange as AndroidDocumentChange
+import com.google.firebase.firestore.DocumentReference as AndroidDocumentReference
+import com.google.firebase.firestore.DocumentSnapshot as AndroidDocumentSnapshot
+import com.google.firebase.firestore.FieldPath as AndroidFieldPath
+import com.google.firebase.firestore.FirebaseFirestore as AndroidFirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException as AndroidFirebaseFirestoreException
+import com.google.firebase.firestore.LocalCacheSettings as AndroidLocalCacheSettings
+import com.google.firebase.firestore.Query as AndroidQuery
+import com.google.firebase.firestore.QuerySnapshot as AndroidQuerySnapshot
+import com.google.firebase.firestore.SnapshotMetadata as AndroidSnapshotMetadata
+import com.google.firebase.firestore.Source as AndroidSource
+import com.google.firebase.firestore.Transaction as AndroidTransaction
+import com.google.firebase.firestore.WriteBatch as AndroidWriteBatch
+import com.google.firebase.firestore.memoryCacheSettings as androidMemoryCacheSettings
+import com.google.firebase.firestore.memoryEagerGcSettings as androidMemoryEagerGcSettings
+import com.google.firebase.firestore.memoryLruGcSettings as androidMemoryLruGcSettings
+import com.google.firebase.firestore.persistentCacheSettings as androidPersistentCacheSettings
 
-actual val Firebase.firestore get() =
-    FirebaseFirestore(com.google.firebase.firestore.FirebaseFirestore.getInstance())
+public val FirebaseFirestore.android: AndroidFirebaseFirestore get() = AndroidFirebaseFirestore.getInstance()
 
-actual fun Firebase.firestore(app: FirebaseApp) =
-    FirebaseFirestore(com.google.firebase.firestore.FirebaseFirestore.getInstance(app.android))
+public actual val Firebase.firestore: FirebaseFirestore get() =
+    FirebaseFirestore(AndroidFirebaseFirestore.getInstance())
 
-@Suppress("DeferredIsResult")
-@PublishedApi
-internal fun Task<Void>.asUnitDeferred(): Deferred<Unit> = CompletableDeferred<Unit>()
-    .apply {
-        asDeferred().invokeOnCompletion { exception ->
-            if (exception == null) complete(Unit) else completeExceptionally(exception)
-        }
+public actual fun Firebase.firestore(app: FirebaseApp): FirebaseFirestore =
+    FirebaseFirestore(AndroidFirebaseFirestore.getInstance(app.android))
+
+public val LocalCacheSettings.android: AndroidLocalCacheSettings get() = when (this) {
+    is LocalCacheSettings.Persistent -> androidPersistentCacheSettings {
+        setSizeBytes(sizeBytes)
     }
-
-val LocalCacheSettings.android: com.google.firebase.firestore.LocalCacheSettings get() = when (this) {
-    is LocalCacheSettings.Persistent -> persistentCacheSettings {
-        sizeBytes?.let { setSizeBytes(it) }
-    }
-    is LocalCacheSettings.Memory -> memoryCacheSettings {
+    is LocalCacheSettings.Memory -> androidMemoryCacheSettings {
         setGcSettings(
             when (garbaseCollectorSettings) {
-                is LocalCacheSettings.Memory.GarbageCollectorSettings.Eager -> memoryEagerGcSettings {  }
-                is LocalCacheSettings.Memory.GarbageCollectorSettings.LRUGC -> memoryLruGcSettings {
-                    garbaseCollectorSettings.sizeBytes?.let {
-                        setSizeBytes(it)
-                    }
+                is MemoryGarbageCollectorSettings.Eager -> androidMemoryEagerGcSettings { }
+                is MemoryGarbageCollectorSettings.LRUGC -> androidMemoryLruGcSettings {
+                    setSizeBytes(garbaseCollectorSettings.sizeBytes)
                 }
-            }
+            },
         )
     }
 }
 
-actual data class FirebaseFirestore(val android: com.google.firebase.firestore.FirebaseFirestore) {
+internal actual typealias NativeFirebaseFirestore = AndroidFirebaseFirestore
 
-    actual data class Settings(
-        actual val sslEnabled: Boolean? = null,
-        actual val host: String? = null,
-        actual val cacheSettings: LocalCacheSettings? = null
+public operator fun FirebaseFirestore.Companion.invoke(android: AndroidFirebaseFirestore): FirebaseFirestore = FirebaseFirestore(android)
+
+public actual data class FirebaseFirestoreSettings(
+    actual val sslEnabled: Boolean,
+    actual val host: String,
+    actual val cacheSettings: LocalCacheSettings,
+    val callbackExecutor: Executor,
+) {
+
+    public actual companion object {
+        public actual val CACHE_SIZE_UNLIMITED: Long = -1L
+        internal actual val DEFAULT_HOST: String = "firestore.googleapis.com"
+        internal actual val MINIMUM_CACHE_BYTES: Long = 1 * 1024 * 1024
+        internal actual val DEFAULT_CACHE_SIZE_BYTES: Long = 100 * 1024 * 1024
+    }
+
+    public actual class Builder internal constructor(
+        public actual var sslEnabled: Boolean,
+        public actual var host: String,
+        public actual var cacheSettings: LocalCacheSettings,
+        public var callbackExecutor: Executor,
     ) {
-        actual companion object {
-            actual fun create(sslEnabled: Boolean?, host: String?, cacheSettings: LocalCacheSettings?) = Settings(sslEnabled, host, cacheSettings)
-        }
-    }
 
-    actual fun collection(collectionPath: String) = CollectionReference(android.collection(collectionPath))
+        public actual constructor() : this(
+            true,
+            DEFAULT_HOST,
+            persistentCacheSettings { },
+            TaskExecutors.MAIN_THREAD,
+        )
+        public actual constructor(settings: FirebaseFirestoreSettings) : this(settings.sslEnabled, settings.host, settings.cacheSettings, settings.callbackExecutor)
 
-    actual fun document(documentPath: String) = DocumentReference(android.document(documentPath))
-
-    actual fun collectionGroup(collectionId: String) = Query(android.collectionGroup(collectionId))
-
-    actual fun batch() = WriteBatch(android.batch())
-
-    actual fun setLoggingEnabled(loggingEnabled: Boolean) =
-        com.google.firebase.firestore.FirebaseFirestore.setLoggingEnabled(loggingEnabled)
-
-    actual suspend fun <T> runTransaction(func: suspend Transaction.() -> T): T =
-        android.runTransaction { runBlocking { Transaction(it).func() } }.await()
-
-    actual suspend fun clearPersistence() =
-        android.clearPersistence().await().run { }
-
-    actual fun useEmulator(host: String, port: Int) {
-        android.useEmulator(host, port)
-        android.firestoreSettings = firestoreSettings {  }
-    }
-
-    actual fun setSettings(settings: Settings) {
-        android.firestoreSettings = firestoreSettings {
-            settings.sslEnabled?.let { isSslEnabled = it }
-            settings.host?.let { host = it }
-            settings.cacheSettings?.let { setLocalCacheSettings(it.android) }
-        }
-    }
-
-    @Suppress("DEPRECATION")
-    actual fun updateSettings(settings: Settings) {
-        android.firestoreSettings = firestoreSettings {
-            isSslEnabled = settings.sslEnabled ?: android.firestoreSettings.isSslEnabled
-            host = settings.host ?: android.firestoreSettings.host
-            val cacheSettings = settings.cacheSettings?.android ?: android.firestoreSettings.cacheSettings
-            cacheSettings?.let {
-                setLocalCacheSettings(it)
-            } ?: kotlin.run {
-                isPersistenceEnabled = android.firestoreSettings.isPersistenceEnabled
-                setCacheSizeBytes(android.firestoreSettings.cacheSizeBytes)
-            }
-        }
-    }
-
-    actual suspend fun disableNetwork() =
-        android.disableNetwork().await().run { }
-
-    actual suspend fun enableNetwork() =
-        android.enableNetwork().await().run { }
-
-}
-
-val SetOptions.android: com.google.firebase.firestore.SetOptions? get() = when (this) {
-    is SetOptions.Merge -> com.google.firebase.firestore.SetOptions.merge()
-    is SetOptions.Overwrite -> null
-    is SetOptions.MergeFields -> com.google.firebase.firestore.SetOptions.mergeFields(fields)
-    is SetOptions.MergeFieldPaths -> com.google.firebase.firestore.SetOptions.mergeFieldPaths(encodedFieldPaths)
-}
-
-actual class WriteBatch(val android: com.google.firebase.firestore.WriteBatch) : BaseWriteBatch() {
-
-    actual val async = Async(android)
-
-    override fun setEncoded(
-        documentRef: DocumentReference,
-        encodedData: Any,
-        setOptions: SetOptions
-    ): BaseWriteBatch = (setOptions.android?.let {
-        android.set(documentRef.android, encodedData, it)
-    } ?: android.set(documentRef.android, encodedData)).let {
-        this
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun setEncoded(
-        documentRef: DocumentReference,
-        encodedData: Any,
-        encodedFieldsAndValues: List<Pair<String, Any?>>,
-        merge: Boolean
-    ): BaseWriteBatch {
-        val serializedItem = encodedData as Map<String, *>
-        val serializedFieldAndValues = encodedFieldsAndValues.toMap()
-
-        val result = serializedItem + serializedFieldAndValues
-        if (merge) {
-            android.set(documentRef.android, result, com.google.firebase.firestore.SetOptions.merge())
-        } else {
-            android.set(documentRef.android, result)
-        }
-        return this
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun updateEncoded(documentRef: DocumentReference, encodedData: Any): BaseWriteBatch = android.update(documentRef.android, encodedData as Map<String, Any>).let { this }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun updateEncoded(
-        documentRef: DocumentReference,
-        encodedData: Any,
-        encodedFieldsAndValues: List<Pair<String, Any?>>
-    ): BaseWriteBatch {
-        val serializedItem = encodedData as Map<String, *>
-        val serializedFieldAndValues = encodedFieldsAndValues.toMap()
-
-        val result = serializedItem + serializedFieldAndValues
-        return android.update(documentRef.android, result).let { this }
-    }
-
-    override fun updateEncodedFieldsAndValues(
-        documentRef: DocumentReference,
-        encodedFieldsAndValues: List<Pair<String, Any?>>
-    ): BaseWriteBatch = encodedFieldsAndValues.performUpdate { field, value, moreFieldsAndValues ->
-        android.update(documentRef.android, field, value, *moreFieldsAndValues)
-    }.let { this }
-
-    override fun updateEncodedFieldPathsAndValues(
-        documentRef: DocumentReference,
-        encodedFieldsAndValues: List<Pair<EncodedFieldPath, Any?>>
-    ): BaseWriteBatch = encodedFieldsAndValues.performUpdate { field, value, moreFieldsAndValues ->
-        android.update(documentRef.android, field, value, *moreFieldsAndValues)
-    }.let { this }
-
-    actual fun delete(documentRef: DocumentReference) =
-        android.delete(documentRef.android).let { this }
-
-    actual suspend fun commit() = async.commit().await()
-
-    @Suppress("DeferredIsResult")
-    actual class Async(private val android: com.google.firebase.firestore.WriteBatch) {
-        actual fun commit(): Deferred<Unit> = android.commit().asUnitDeferred()
+        public actual fun build(): FirebaseFirestoreSettings = FirebaseFirestoreSettings(sslEnabled, host, cacheSettings, callbackExecutor)
     }
 }
 
-actual class Transaction(val android: com.google.firebase.firestore.Transaction) : BaseTransaction() {
-
-    override fun setEncoded(
-        documentRef: DocumentReference,
-        encodedData: Any,
-        setOptions: SetOptions
-    ): BaseTransaction {
-        setOptions.android?.let {
-            android.set(documentRef.android, encodedData, it)
-        } ?: android.set(documentRef.android, encodedData)
-        return this
+public actual fun firestoreSettings(
+    settings: FirebaseFirestoreSettings?,
+    builder: FirebaseFirestoreSettings.Builder.() -> Unit,
+): FirebaseFirestoreSettings = FirebaseFirestoreSettings.Builder().apply {
+    settings?.let {
+        sslEnabled = it.sslEnabled
+        host = it.host
+        cacheSettings = it.cacheSettings
+        callbackExecutor = it.callbackExecutor
     }
+}.apply(builder).build()
 
-    @Suppress("UNCHECKED_CAST")
-    override fun updateEncoded(documentRef: DocumentReference, encodedData: Any): BaseTransaction = android.update(documentRef.android, encodedData as Map<String, Any>).let { this }
+internal actual typealias NativeWriteBatch = AndroidWriteBatch
 
-    override fun updateEncodedFieldsAndValues(
-        documentRef: DocumentReference,
-        encodedFieldsAndValues: List<Pair<String, Any?>>
-    ): BaseTransaction = encodedFieldsAndValues.performUpdate { field, value, moreFieldsAndValues ->
-        android.update(documentRef.android, field, value, *moreFieldsAndValues)
-    }.let { this }
+public operator fun WriteBatch.Companion.invoke(android: AndroidWriteBatch): WriteBatch = WriteBatch(android)
+public val WriteBatch.android: AndroidWriteBatch get() = native
 
-    override fun updateEncodedFieldPathsAndValues(
-        documentRef: DocumentReference,
-        encodedFieldsAndValues: List<Pair<EncodedFieldPath, Any?>>
-    ) = encodedFieldsAndValues.performUpdate { field, value, moreFieldsAndValues ->
-        android.update(documentRef.android, field, value, *moreFieldsAndValues)
-    }.let { this }
+internal actual typealias NativeTransaction = AndroidTransaction
 
-    actual fun delete(documentRef: DocumentReference) =
-        android.delete(documentRef.android).let { this }
-
-    actual suspend fun get(documentRef: DocumentReference) =
-        DocumentSnapshot(android.get(documentRef.android))
-}
+public operator fun Transaction.Companion.invoke(android: AndroidTransaction): Transaction = Transaction(android)
+public val Transaction.android: AndroidTransaction get() = native
 
 /** A class representing a platform specific Firebase DocumentReference. */
-actual typealias NativeDocumentReference = com.google.firebase.firestore.DocumentReference
+internal actual typealias NativeDocumentReferenceType = AndroidDocumentReference
 
-@Serializable(with = DocumentReferenceSerializer::class)
-actual class DocumentReference actual constructor(internal actual val nativeValue: NativeDocumentReference) : BaseDocumentReference() {
-    val android: NativeDocumentReference by ::nativeValue
-    actual val id: String
-        get() = android.id
+public operator fun DocumentReference.Companion.invoke(android: AndroidDocumentReference): DocumentReference = DocumentReference(android)
+public val DocumentReference.android: AndroidDocumentReference get() = native.android
 
-    actual val path: String
-        get() = android.path
+internal actual typealias NativeQuery = AndroidQuery
 
-    actual val parent: CollectionReference
-        get() = CollectionReference(android.parent)
+public operator fun Query.Companion.invoke(android: AndroidQuery): Query = Query(android)
+public val Query.android: AndroidQuery get() = native
 
-    override val async = Async(android)
+public actual typealias Direction = AndroidQuery.Direction
+public actual typealias ChangeType = AndroidDocumentChange.Type
 
-    actual fun collection(collectionPath: String) = CollectionReference(android.collection(collectionPath))
+internal actual typealias NativeCollectionReference = AndroidCollectionReference
 
-    actual suspend fun get() =
-        DocumentSnapshot(android.get().await())
+public operator fun CollectionReference.Companion.invoke(android: AndroidCollectionReference): CollectionReference = CollectionReference(android)
+public val CollectionReference.android: AndroidCollectionReference get() = native
 
-    actual val snapshots: Flow<DocumentSnapshot> get() = snapshots()
+public actual typealias FirebaseFirestoreException = AndroidFirebaseFirestoreException
 
-    actual fun snapshots(includeMetadataChanges: Boolean) = callbackFlow {
-        val metadataChanges = if(includeMetadataChanges) MetadataChanges.INCLUDE else MetadataChanges.EXCLUDE
-        val listener = android.addSnapshotListener(metadataChanges) { snapshot, exception ->
-            snapshot?.let { trySend(DocumentSnapshot(snapshot)) }
-            exception?.let { close(exception) }
-        }
-        awaitClose { listener.remove() }
-    }
+@Suppress("ConflictingExtensionProperty")
+public actual val FirebaseFirestoreException.code: FirestoreExceptionCode get() = code
 
-    override fun equals(other: Any?): Boolean =
-        this === other || other is DocumentReference && nativeValue == other.nativeValue
-    override fun hashCode(): Int = nativeValue.hashCode()
-    override fun toString(): String = nativeValue.toString()
+public actual typealias FirestoreExceptionCode = AndroidFirebaseFirestoreException.Code
 
-    @Suppress("DeferredIsResult")
-    class Async(@PublishedApi internal val android: NativeDocumentReference) : BaseDocumentReference.Async() {
+public val QuerySnapshot.android: AndroidQuerySnapshot get() = android
 
-        override fun setEncoded(encodedData: Any, setOptions: SetOptions): Deferred<Unit> = (setOptions.android?.let {
-            android.set(encodedData, it)
-        } ?: android.set(encodedData)).asUnitDeferred()
-
-        @Suppress("UNCHECKED_CAST")
-        override fun updateEncoded(encodedData: Any): Deferred<Unit> = android.update(encodedData as Map<String, Any>).asUnitDeferred()
-
-        override fun updateEncodedFieldsAndValues(encodedFieldsAndValues: List<Pair<String, Any?>>): Deferred<Unit> = encodedFieldsAndValues.takeUnless { encodedFieldsAndValues.isEmpty() }?.let {
-            android.update(encodedFieldsAndValues.toMap())
-        }?.asUnitDeferred() ?: CompletableDeferred(Unit)
-
-        override fun updateEncodedFieldPathsAndValues(encodedFieldsAndValues: List<Pair<EncodedFieldPath, Any?>>): Deferred<Unit> = encodedFieldsAndValues.takeUnless { encodedFieldsAndValues.isEmpty() }
-            ?.performUpdate { field, value, moreFieldsAndValues ->
-                android.update(field, value, *moreFieldsAndValues)
-            }?.asUnitDeferred() ?: CompletableDeferred(Unit)
-
-        override fun delete() =
-            android.delete().asUnitDeferred()
-    }
-}
-
-actual open class Query(open val android: com.google.firebase.firestore.Query) {
-
-    actual suspend fun get() = QuerySnapshot(android.get().await())
-
-    actual fun limit(limit: Number) = Query(android.limit(limit.toLong()))
-
-    actual val snapshots get() = callbackFlow<QuerySnapshot> {
-        val listener = android.addSnapshotListener { snapshot, exception ->
-            snapshot?.let { trySend(QuerySnapshot(snapshot)) }
-            exception?.let { close(exception) }
-        }
-        awaitClose { listener.remove() }
-    }
-
-    actual fun snapshots(includeMetadataChanges: Boolean) = callbackFlow<QuerySnapshot> {
-        val metadataChanges = if(includeMetadataChanges) MetadataChanges.INCLUDE else MetadataChanges.EXCLUDE
-        val listener = android.addSnapshotListener(metadataChanges) { snapshot, exception ->
-            snapshot?.let { trySend(QuerySnapshot(snapshot)) }
-            exception?.let { close(exception) }
-        }
-        awaitClose { listener.remove() }
-    }
-
-    internal actual fun _where(field: String, equalTo: Any?) = Query(android.whereEqualTo(field, equalTo))
-    internal actual fun _where(path: FieldPath, equalTo: Any?) = Query(android.whereEqualTo(path.android, equalTo))
-
-    internal actual fun _where(field: String, equalTo: DocumentReference) = Query(android.whereEqualTo(field, equalTo.android))
-    internal actual fun _where(path: FieldPath, equalTo: DocumentReference) = Query(android.whereEqualTo(path.android, equalTo.android))
-
-    internal actual fun _where(
-        field: String, lessThan: Any?, greaterThan: Any?, arrayContains: Any?, notEqualTo: Any?,
-        lessThanOrEqualTo: Any?, greaterThanOrEqualTo: Any?
-    ) = Query(
-            when {
-                lessThan != null -> android.whereLessThan(field, lessThan)
-                greaterThan != null -> android.whereGreaterThan(field, greaterThan)
-                arrayContains != null -> android.whereArrayContains(field, arrayContains)
-                notEqualTo != null -> android.whereNotEqualTo(field, notEqualTo)
-                lessThanOrEqualTo != null -> android.whereLessThanOrEqualTo(field, lessThanOrEqualTo)
-                greaterThanOrEqualTo != null -> android.whereGreaterThanOrEqualTo(field, greaterThanOrEqualTo)
-                else -> android
-            }
-        )
-
-    internal actual fun _where(
-        path: FieldPath, lessThan: Any?, greaterThan: Any?, arrayContains: Any?, notEqualTo: Any?,
-        lessThanOrEqualTo: Any?, greaterThanOrEqualTo: Any?
-    ) = Query(
-            when {
-                lessThan != null -> android.whereLessThan(path.android, lessThan)
-                greaterThan != null -> android.whereGreaterThan(path.android, greaterThan)
-                arrayContains != null -> android.whereArrayContains(path.android, arrayContains)
-                notEqualTo != null -> android.whereNotEqualTo(path.android, notEqualTo)
-                lessThanOrEqualTo != null -> android.whereLessThanOrEqualTo(path.android, lessThanOrEqualTo)
-                greaterThanOrEqualTo != null -> android.whereGreaterThanOrEqualTo(path.android, greaterThanOrEqualTo)
-                else -> android
-            }
-        )
-
-    internal actual fun _where(
-        field: String, inArray: List<Any>?, arrayContainsAny: List<Any>?, notInArray: List<Any>?
-    ) = Query(
-            when {
-                inArray != null -> android.whereIn(field, inArray)
-                arrayContainsAny != null -> android.whereArrayContainsAny(field, arrayContainsAny)
-                notInArray != null -> android.whereNotIn(field, notInArray)
-                else -> android
-            }
-        )
-
-    internal actual fun _where(
-        path: FieldPath, inArray: List<Any>?, arrayContainsAny: List<Any>?, notInArray: List<Any>?
-    ) = Query(
-            when {
-                inArray != null -> android.whereIn(path.android, inArray)
-                arrayContainsAny != null -> android.whereArrayContainsAny(path.android, arrayContainsAny)
-                notInArray != null -> android.whereNotIn(path.android, notInArray)
-                else -> android
-            }
-        )
-
-    internal actual fun _orderBy(field: String, direction: Direction) = Query(android.orderBy(field, direction))
-    internal actual fun _orderBy(field: FieldPath, direction: Direction) = Query(android.orderBy(field.android, direction))
-
-    internal actual fun _startAfter(document: DocumentSnapshot) = Query(android.startAfter(document.android))
-    internal actual fun _startAfter(vararg fieldValues: Any) = Query(android.startAfter(*fieldValues))
-    internal actual fun _startAt(document: DocumentSnapshot) = Query(android.startAt(document.android))
-    internal actual fun _startAt(vararg fieldValues: Any) = Query(android.startAt(*fieldValues))
-
-    internal actual fun _endBefore(document: DocumentSnapshot) = Query(android.endBefore(document.android))
-    internal actual fun _endBefore(vararg fieldValues: Any) = Query(android.endBefore(*fieldValues))
-    internal actual fun _endAt(document: DocumentSnapshot) = Query(android.endAt(document.android))
-    internal actual fun _endAt(vararg fieldValues: Any) = Query(android.endAt(*fieldValues))
-}
-
-actual typealias Direction = com.google.firebase.firestore.Query.Direction
-actual typealias ChangeType = com.google.firebase.firestore.DocumentChange.Type
-
-actual class CollectionReference(override val android: com.google.firebase.firestore.CollectionReference) : Query(android) {
-
-    actual val path: String
-        get() = android.path
-    actual val async = Async(android)
-
-    actual val document: DocumentReference
-        get() = DocumentReference(android.document())
-
-    actual val parent: DocumentReference?
-        get() = android.parent?.let{DocumentReference(it)}
-
-    actual fun document(documentPath: String) = DocumentReference(android.document(documentPath))
-
-    actual suspend inline fun <reified T> add(data: T, encodeSettings: EncodeSettings) =
-        DocumentReference(android.add(encode(data, encodeSettings)!!).await())
-    actual suspend fun <T> add(strategy: SerializationStrategy<T>, data: T, encodeSettings: EncodeSettings) =
-        DocumentReference(android.add(encode(strategy, data, encodeSettings)!!).await())
-
-    @Suppress("DeferredIsResult")
-    actual class Async(@PublishedApi internal val android: com.google.firebase.firestore.CollectionReference) {
-        actual inline fun <reified T> add(data: T, encodeSettings: EncodeSettings) =
-            android.add(encode(data, encodeSettings)!!).asDeferred().convert(::DocumentReference)
-        actual fun <T> add(strategy: SerializationStrategy<T>, data: T, encodeSettings: EncodeSettings) =
-            android.add(encode(strategy, data, encodeSettings)!!).asDeferred().convert(::DocumentReference)
-    }
-}
-
-actual typealias FirebaseFirestoreException = com.google.firebase.firestore.FirebaseFirestoreException
-
-actual val FirebaseFirestoreException.code: FirestoreExceptionCode get() = code
-
-actual typealias FirestoreExceptionCode = com.google.firebase.firestore.FirebaseFirestoreException.Code
-
-actual class QuerySnapshot(val android: com.google.firebase.firestore.QuerySnapshot) {
-    actual val documents
-        get() = android.documents.map { DocumentSnapshot(it) }
-    actual val documentChanges
+public actual class QuerySnapshot(internal val android: AndroidQuerySnapshot) {
+    public actual val documents: List<DocumentSnapshot>
+        get() = android.documents.map { DocumentSnapshot(NativeDocumentSnapshotWrapper(it)) }
+    public actual val documentChanges: List<DocumentChange>
         get() = android.documentChanges.map { DocumentChange(it) }
-    actual val metadata: SnapshotMetadata get() = SnapshotMetadata(android.metadata)
+    public actual val metadata: SnapshotMetadata get() = SnapshotMetadata(android.metadata)
 }
 
-actual class DocumentChange(val android: com.google.firebase.firestore.DocumentChange) {
-    actual val document: DocumentSnapshot
-        get() = DocumentSnapshot(android.document)
-    actual val newIndex: Int
+public val DocumentChange.android: AndroidDocumentChange get() = android
+
+public actual class DocumentChange(internal val android: AndroidDocumentChange) {
+    public actual val document: DocumentSnapshot
+        get() = DocumentSnapshot(NativeDocumentSnapshotWrapper(android.document))
+    public actual val newIndex: Int
         get() = android.newIndex
-    actual val oldIndex: Int
+    public actual val oldIndex: Int
         get() = android.oldIndex
-    actual val type: ChangeType
+    public actual val type: ChangeType
         get() = android.type
 }
 
-@Suppress("UNCHECKED_CAST")
-actual class DocumentSnapshot(val android: com.google.firebase.firestore.DocumentSnapshot) {
+internal actual typealias NativeDocumentSnapshot = AndroidDocumentSnapshot
 
-    actual val id get() = android.id
-    actual val reference get() = DocumentReference(android.reference)
+public operator fun DocumentSnapshot.Companion.invoke(android: AndroidDocumentSnapshot): DocumentSnapshot = DocumentSnapshot(android)
+public val DocumentSnapshot.android: AndroidDocumentSnapshot get() = native
 
-    actual inline fun <reified T: Any> data(serverTimestampBehavior: ServerTimestampBehavior): T =
-        decode(value = android.getData(serverTimestampBehavior.toAndroid()))
+public val SnapshotMetadata.android: AndroidSnapshotMetadata get() = android
 
-    actual fun <T> data(strategy: DeserializationStrategy<T>, decodeSettings: DecodeSettings, serverTimestampBehavior: ServerTimestampBehavior): T =
-        decode(strategy, android.getData(serverTimestampBehavior.toAndroid()), decodeSettings)
+public actual class SnapshotMetadata(internal val android: AndroidSnapshotMetadata) {
+    public actual val hasPendingWrites: Boolean get() = android.hasPendingWrites()
+    public actual val isFromCache: Boolean get() = android.isFromCache
+}
 
-    actual inline fun <reified T> get(field: String, serverTimestampBehavior: ServerTimestampBehavior): T =
-        decode(value = android.get(field, serverTimestampBehavior.toAndroid()))
+public val FieldPath.android: AndroidFieldPath get() = android
 
-    actual fun <T> get(field: String, strategy: DeserializationStrategy<T>, decodeSettings: DecodeSettings, serverTimestampBehavior: ServerTimestampBehavior): T =
-        decode(strategy, android.get(field, serverTimestampBehavior.toAndroid()), decodeSettings)
+public actual class FieldPath private constructor(internal val android: AndroidFieldPath) {
 
-    actual fun contains(field: String) = android.contains(field)
-
-    actual val exists get() = android.exists()
-
-    actual val metadata: SnapshotMetadata get() = SnapshotMetadata(android.metadata)
-
-    fun ServerTimestampBehavior.toAndroid(): com.google.firebase.firestore.DocumentSnapshot.ServerTimestampBehavior = when (this) {
-        ServerTimestampBehavior.ESTIMATE -> com.google.firebase.firestore.DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
-        ServerTimestampBehavior.NONE -> com.google.firebase.firestore.DocumentSnapshot.ServerTimestampBehavior.NONE
-        ServerTimestampBehavior.PREVIOUS -> com.google.firebase.firestore.DocumentSnapshot.ServerTimestampBehavior.PREVIOUS
+    public actual companion object {
+        public actual val documentId: FieldPath = FieldPath(AndroidFieldPath.documentId())
     }
-}
 
-actual class SnapshotMetadata(val android: com.google.firebase.firestore.SnapshotMetadata) {
-    actual val hasPendingWrites: Boolean get() = android.hasPendingWrites()
-    actual val isFromCache: Boolean get() = android.isFromCache
-}
-
-actual class FieldPath private constructor(val android: com.google.firebase.firestore.FieldPath) {
-    actual constructor(vararg fieldNames: String) : this(
-        com.google.firebase.firestore.FieldPath.of(
-            *fieldNames
-        )
+    public actual constructor(vararg fieldNames: String) : this(
+        AndroidFieldPath.of(
+            *fieldNames,
+        ),
     )
 
-    actual val documentId: FieldPath get() = FieldPath(com.google.firebase.firestore.FieldPath.documentId())
-    actual val encoded: EncodedFieldPath = android
+    public actual val documentId: FieldPath get() = FieldPath.documentId
+    public actual val encoded: EncodedFieldPath = android
     override fun equals(other: Any?): Boolean = other is FieldPath && android == other.android
     override fun hashCode(): Int = android.hashCode()
     override fun toString(): String = android.toString()
 }
 
-actual typealias EncodedFieldPath = com.google.firebase.firestore.FieldPath
+public actual typealias EncodedFieldPath = AndroidFieldPath
+
+internal typealias NativeSource = AndroidSource
