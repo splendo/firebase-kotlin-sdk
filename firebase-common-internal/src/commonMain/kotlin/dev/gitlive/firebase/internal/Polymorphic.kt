@@ -1,8 +1,5 @@
 package dev.gitlive.firebase.internal
 
-import dev.gitlive.firebase.DecodeSettings
-import dev.gitlive.firebase.EncodeDecodeSettings
-import dev.gitlive.firebase.EncodeSettings
 import dev.gitlive.firebase.FirebaseClassDiscriminator
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationStrategy
@@ -18,19 +15,17 @@ import kotlinx.serialization.internal.AbstractPolymorphicSerializer
 internal fun <T> FirebaseEncoder.encodePolymorphically(
     serializer: SerializationStrategy<T>,
     value: T,
-    settings: EncodeSettings,
     ifPolymorphic: (String) -> Unit,
 ) {
-    // If serializer is not an AbstractPolymorphicSerializer or if we are encoding this as a list, we can just use the regular serializer
+    // If serializer is not an AbstractPolymorphicSerializer we can just use the regular serializer
     // This will result in calling structureEncoder for complicated structures
     // For PolymorphicKind this will first encode the polymorphic discriminator as a String and the remaining StructureKind.Class as a map of key-value pairs
     // This will result in a list structured like: (type, { classKey = classValue })
-    if (serializer !is AbstractPolymorphicSerializer<*> || settings.polymorphicStructure == EncodeDecodeSettings.PolymorphicStructure.LIST) {
+    if (serializer !is AbstractPolymorphicSerializer<*>) {
         serializer.serialize(this, value)
         return
     }
 
-    // When doing Polymorphic Serialization with EncodeDecodeSettings.PolymorphicStructure.MAP we will use the polymorphic serializer of the class.
     val casted = serializer as AbstractPolymorphicSerializer<Any>
     val baseClassDiscriminator = serializer.descriptor.classDiscriminator()
     val actualSerializer = casted.findPolymorphicSerializer(this, value as Any)
@@ -41,11 +36,10 @@ internal fun <T> FirebaseEncoder.encodePolymorphically(
 @Suppress("UNCHECKED_CAST")
 internal fun <T> FirebaseDecoder.decodeSerializableValuePolymorphic(
     value: Any?,
-    decodeSettings: DecodeSettings,
     deserializer: DeserializationStrategy<T>,
 ): T {
-    // If deserializer is not an AbstractPolymorphicSerializer or if we are decoding this from a list, we can just use the regular serializer
-    if (deserializer !is AbstractPolymorphicSerializer<*> || decodeSettings.polymorphicStructure == EncodeDecodeSettings.PolymorphicStructure.LIST) {
+    // If deserializer is not an AbstractPolymorphicSerializer we can just use the regular serializer
+    if (deserializer !is AbstractPolymorphicSerializer<*>) {
         return deserializer.deserialize(this)
     }
     val casted = deserializer as AbstractPolymorphicSerializer<Any>

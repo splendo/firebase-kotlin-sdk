@@ -4,7 +4,6 @@
 
 package dev.gitlive.firebase.internal
 
-import dev.gitlive.firebase.EncodeDecodeSettings
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -16,10 +15,7 @@ public actual fun FirebaseDecoder.structureDecoder(descriptor: SerialDescriptor,
     StructureKind.MAP -> (value as? Map<*, *>).orEmpty().entries.toList().let {
         FirebaseCompositeDecoder(it.size, settings) { _, index -> it[index / 2].run { if (index % 2 == 0) key else value } }
     }
-    is PolymorphicKind -> when (settings.polymorphicStructure) {
-        EncodeDecodeSettings.PolymorphicStructure.MAP -> decodeAsMap(polymorphicIsNested)
-        EncodeDecodeSettings.PolymorphicStructure.LIST -> decodeAsList()
-    }
+    is PolymorphicKind -> decodeAsMap(polymorphicIsNested)
     else -> TODO("The firebase-kotlin-sdk does not support $descriptor for serialization yet")
 }
 
@@ -32,10 +28,10 @@ private fun FirebaseDecoder.decodeAsList(): CompositeDecoder = (value as? List<*
 private fun FirebaseDecoder.decodeAsMap(isNestedPolymorphic: Boolean): CompositeDecoder = (value as? Map<*, *>).orEmpty().let { map ->
     FirebaseClassDecoder(map.size, settings, { map.containsKey(it) }) { desc, index ->
         if (isNestedPolymorphic) {
-            if (index == 0) {
-                map[desc.getElementName(index)]
-            } else {
+            if (desc.getElementName(index) == "value") {
                 map
+            } else {
+                map[desc.getElementName(index)]
             }
         } else {
             map[desc.getElementName(index)]

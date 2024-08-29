@@ -156,7 +156,7 @@ public class FirebaseEncoder(
     override fun encodeInline(descriptor: SerialDescriptor): Encoder = this
 
     override fun <T> encodeSerializableValue(serializer: SerializationStrategy<T>, value: T) {
-        encodePolymorphically(serializer, value, settings) {
+        encodePolymorphically(serializer, value) {
             polymorphicDiscriminator = it
         }
     }

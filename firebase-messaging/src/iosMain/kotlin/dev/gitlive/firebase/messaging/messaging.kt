@@ -5,10 +5,12 @@ import dev.gitlive.firebase.Firebase
 import kotlinx.coroutines.CompletableDeferred
 import platform.Foundation.NSError
 
+public val FirebaseMessaging.ios: FIRMessaging get() = FIRMessaging.messaging()
+
 public actual val Firebase.messaging: FirebaseMessaging
     get() = FirebaseMessaging(FIRMessaging.messaging())
 
-public actual class FirebaseMessaging(public val ios: FIRMessaging) {
+public actual class FirebaseMessaging(internal val ios: FIRMessaging) {
     public actual fun subscribeToTopic(topic: String) {
         ios.subscribeToTopic(topic)
     }
@@ -18,6 +20,10 @@ public actual class FirebaseMessaging(public val ios: FIRMessaging) {
     }
 
     public actual suspend fun getToken(): String = awaitResult { ios.tokenWithCompletion(it) }
+
+    public actual suspend fun deleteToken() {
+        await { ios.deleteTokenWithCompletion(it) }
+    }
 }
 
 public suspend inline fun <T> T.await(function: T.(callback: (NSError?) -> Unit) -> Unit) {

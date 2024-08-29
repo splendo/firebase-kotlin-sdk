@@ -8,30 +8,9 @@ import kotlinx.serialization.modules.SerializersModule
 public sealed interface EncodeDecodeSettings {
 
     /**
-     * The structure in which Polymorphic classes are to be serialized
-     */
-    public enum class PolymorphicStructure {
-
-        /**
-         * A [PolymorphicStructure] where the polymorphic class is serialized as a Map, with a key for `type` reserved for the polymorphic discriminator
-         */
-        MAP,
-
-        /**
-         * A [PolymorphicStructure] where the polymorphic class is serialized as a List, with the polymorphic discriminator as its first element and the serialized object as its second element
-         */
-        LIST,
-    }
-
-    /**
      * The [SerializersModule] to use for serialization. This allows for polymorphic serialization on runtime
      */
     public val serializersModule: SerializersModule
-
-    /**
-     * The [PolymorphicStructure] to use for encoding/decoding polymorphic classes
-     */
-    public val polymorphicStructure: PolymorphicStructure
 }
 
 /**
@@ -45,7 +24,6 @@ public interface EncodeSettings : EncodeDecodeSettings {
     public interface Builder {
         public var encodeDefaults: Boolean
         public var serializersModule: SerializersModule
-        public var polymorphicStructure: EncodeDecodeSettings.PolymorphicStructure
     }
 }
 
@@ -56,7 +34,6 @@ public interface DecodeSettings : EncodeDecodeSettings {
 
     public interface Builder {
         public var serializersModule: SerializersModule
-        public var polymorphicStructure: EncodeDecodeSettings.PolymorphicStructure
     }
 }
 

@@ -4,7 +4,6 @@
 
 package dev.gitlive.firebase.internal
 
-import dev.gitlive.firebase.EncodeDecodeSettings
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
@@ -25,10 +24,7 @@ public actual fun FirebaseEncoder.structureEncoder(descriptor: SerialDescriptor)
         }
     }
     StructureKind.CLASS, StructureKind.OBJECT -> encodeAsMap(descriptor)
-    is PolymorphicKind -> when (settings.polymorphicStructure) {
-        EncodeDecodeSettings.PolymorphicStructure.MAP -> encodeAsMap(descriptor)
-        EncodeDecodeSettings.PolymorphicStructure.LIST -> encodeAsList(descriptor)
-    }
+    is PolymorphicKind -> encodeAsMap(descriptor)
     else -> TODO("The firebase-kotlin-sdk does not support $descriptor for serialization yet")
 }
 

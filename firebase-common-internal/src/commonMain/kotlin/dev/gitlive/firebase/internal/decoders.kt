@@ -70,7 +70,7 @@ public class FirebaseDecoder(public val value: Any?, internal val settings: Deco
 
     override fun decodeInline(descriptor: SerialDescriptor): Decoder = FirebaseDecoder(value, settings)
 
-    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T = decodeSerializableValuePolymorphic(value, settings, deserializer)
+    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T = decodeSerializableValuePolymorphic(value, deserializer)
 }
 
 public class FirebaseClassDecoder(
