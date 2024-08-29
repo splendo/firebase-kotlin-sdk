@@ -3,13 +3,12 @@
  */
 
 @file:JvmName("tests")
+
 package dev.gitlive.firebase.remoteconfig
 
-import android.content.Context
-import com.google.firebase.FirebasePlatform
-import dev.gitlive.firebase.MockFirebasePlatform
+import dev.gitlive.firebase.testContext
 
-actual val context: Any get() = Context().also { FirebasePlatform.initializeFirebasePlatform(MockFirebasePlatform()) }
+actual val context: Any = testContext
 
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 actual annotation class IgnoreForAndroidUnitTest

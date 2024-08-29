@@ -1,24 +1,35 @@
 include(
+    "firebase-analytics",
     "firebase-app",
     "firebase-auth",
     "firebase-common",
+    "firebase-common-internal",
     "firebase-config",
+    "firebase-crashlytics",
     "firebase-database",
     "firebase-firestore",
     "firebase-functions",
     "firebase-installations",
+    "firebase-messaging",
     "firebase-perf",
-    "firebase-crashlytics",
     "firebase-storage",
     "test-utils"
 )
 
 pluginManagement {
-    val kotlinVersion: String by settings
+    includeBuild("convention-plugin-test-option")
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url = uri("https://plugins.gradle.org/m2/") }
+    }
+}
 
-    plugins {
-        kotlin("multiplatform") version kotlinVersion
-        kotlin("native.cocoapods") version kotlinVersion
-        kotlin("plugin.serialization") version kotlinVersion
+dependencyResolutionManagement {
+    repositories {
+        mavenLocal()
+        google()
+        mavenCentral()
     }
 }
