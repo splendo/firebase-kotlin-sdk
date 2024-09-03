@@ -5,7 +5,7 @@ androidx-test-junit = "1.2.1"
 androidx-test-runner = "1.6.2"
 ben-manes-versions = "0.51.0"
 firebase-bom = "33.2.0"
-gitlive-firebase-java-sdk = "0.4.5"
+gitlive-firebase-java-sdk = "0.4.6"
 gson = "2.11.0"
 junit = "4.13.2"
 kotlin = "2.0.20"
@@ -20,7 +20,7 @@ firebase-cocoapods = "11.1.0"
 ios-deploymentTarget = "13.0"
 test-logger-plugin = "4.0.0"
 dokka = "1.9.20"
-desugar-libs = "2.1.0"
+desugar-libs = "2.1.1"
 
 [libraries]
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
