@@ -6,7 +6,6 @@ package dev.gitlive.firebase.internal
 
 import dev.gitlive.firebase.EncodeSettings
 import dev.gitlive.firebase.FirebaseEncoder
-import dev.gitlive.firebase.ValueWithSerializer
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -63,14 +62,7 @@ public inline fun <reified T : Any> encodeAsObject(value: T, buildSettings: Enco
 @PublishedApi
 internal inline fun <reified T> encode(value: T, encodeSettings: EncodeSettings): Any? = value?.let {
     FirebaseEncoderImpl(encodeSettings).apply {
-        if (it is ValueWithSerializer<*> && it.value is T) {
-            @Suppress("UNCHECKED_CAST")
-            (it as ValueWithSerializer<T>).let {
-                encodeSerializableValue(it.serializer, it.value)
-            }
-        } else {
-            encodeSerializableValue(it.firebaseSerializer(), it)
-        }
+        encodeSerializableValue(it.firebaseSerializer(), it)
     }.value
 }
 
@@ -163,12 +155,6 @@ internal open class FirebaseCompositeEncoder(
     private val setPolymorphicType: (String, String) -> Unit = { _, _ -> },
     private val set: (descriptor: SerialDescriptor, index: Int, value: Any?) -> Unit,
 ) : CompositeEncoder {
-
-//    private fun <T> SerializationStrategy<T>.toFirebase(): SerializationStrategy<T> = when(descriptor.kind) {
-//        StructureKind.MAP -> FirebaseMapSerializer<Any>(descriptor.getElementDescriptor(1)) as SerializationStrategy<T>
-//        StructureKind.LIST -> FirebaseListSerializer<Any>(descriptor.getElementDescriptor(0)) as SerializationStrategy<T>
-//        else -> this
-//    }
 
     override val serializersModule: SerializersModule = settings.serializersModule
 
