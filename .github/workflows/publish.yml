@@ -4,8 +4,10 @@
 name: Publish
 
 on:
-  release:
-    types: [ prereleased, released ]
+  ## do not upstream ##
+  push:
+    branches: [ master, snapshot ]
+  ## ############### ##
 
 env:
   sonatypeUsername: ${{ secrets.SONATYPEUSERNAME }}
@@ -23,6 +25,11 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
+      ## do no upstream ##
+      - name: replace -SNAPSHOT with -run_number-SNAPSHOT
+        run: sed -i '' 's/-SNAPSHOT/-${{github.run_number}}-SNAPSHOT/g' gradle.properties
+        shell: bash
+      ## ############## ##
       - uses: gradle/actions/setup-gradle@v4
       - name: Setup versions
         run: ./gradlew :updateVersions
