@@ -167,13 +167,13 @@ subprojects {
             "commonTestImplementation"(kotlin("test-common"))
             "commonTestImplementation"(kotlin("test-annotations-common"))
             if (this@afterEvaluate.name != "firebase-crashlytics") {
-                "jvmMainApi"(libs.gitlive.firebase.java.sdk)
-                "jvmMainApi"(libs.kotlinx.coroutines.play.services) {
-                    exclude("com.google.android.gms")
-                }
+//                "jvmMainApi"(libs.gitlive.firebase.java.sdk)
+//                "jvmMainApi"(libs.kotlinx.coroutines.play.services) {
+//                    exclude("com.google.android.gms")
+//                }
                 "jsTestImplementation"(kotlin("test-js"))
-                "jvmTestImplementation"(kotlin("test-junit"))
-                "jvmTestImplementation"(libs.junit)
+//                "jvmTestImplementation"(kotlin("test-junit"))
+//                "jvmTestImplementation"(libs.junit)
             }
             "androidInstrumentedTestImplementation"(kotlin("test-junit"))
             "androidUnitTestImplementation"(kotlin("test-junit"))
