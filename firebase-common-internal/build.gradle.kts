@@ -180,7 +180,7 @@ mavenPublishing {
     signAllPublications()
 
     coordinates(
-        groupId = "dev.gitlive",
+        groupId = "com.splendo.firebase",
         artifactId = "firebase-common-internal",
         version = project.property("firebase-common-internal.version") as String
     )
@@ -220,4 +220,3 @@ mavenPublishing {
         }
     }
 }
-

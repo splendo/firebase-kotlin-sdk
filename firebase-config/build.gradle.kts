@@ -186,7 +186,7 @@ mavenPublishing {
     signAllPublications()
 
     coordinates(
-        groupId = "dev.gitlive",
+        groupId = "com.splendo.firebase",
         artifactId = "firebase-config",
         version = project.property("firebase-config.version") as String
     )
