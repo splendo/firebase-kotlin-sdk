@@ -61,6 +61,7 @@ jobs:
       - name: Publish Firebase Crashlytics
         run: ./gradlew :firebase-crashlytics:publish
   documentation:
+    if: false
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
