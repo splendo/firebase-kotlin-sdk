@@ -208,7 +208,7 @@ fun KotlinNativeTargetWithSimulatorTests.enableKeychainForTests() {
 }
 
 mavenPublishing {
-    publishToMavenCentral(automaticRelease = true)
+    publishToMavenCentral()
     signAllPublications()
 
     coordinates(
