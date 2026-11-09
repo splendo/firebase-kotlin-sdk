@@ -1,12 +1,9 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
-import org.jetbrains.dokka.DokkaConfiguration
-import org.jetbrains.dokka.base.DokkaBase
-import org.jetbrains.dokka.base.DokkaBaseConfiguration
-import org.jetbrains.dokka.gradle.AbstractDokkaTask
-import org.jetbrains.dokka.gradle.DokkaTaskPartial
-import java.net.URL
+import org.jetbrains.dokka.gradle.DokkaExtension
+import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import java.io.InputStream
 
 plugins {
@@ -24,12 +21,6 @@ plugins {
     id("testOptionsConvention")
 }
 
-buildscript {
-    dependencies {
-        classpath(libs.dokka.base)
-    }
-}
-
 val compileSdkVersion by extra(34)
 val targetSdkVersion by extra(34)
 val minSdkVersion by extra(23)
@@ -37,15 +28,15 @@ val minSdkVersion by extra(23)
 private val dokkaCopyrightMessage = "© 2024 GitLive Ltd."
 private val dokkaHomepageUrl = "https://github.com/GitLiveApp/firebase-kotlin-sdk"
 
-tasks.withType<AbstractDokkaTask>().configureEach {
+extensions.configure<DokkaExtension> {
     moduleVersion.set(project.version.toString())
     moduleName.set("Firebase Kotlin SDK")
 
-    pluginConfiguration<DokkaBase, DokkaBaseConfiguration> {
-        customAssets = listOf(file("documentation/gitlive-logo.png"), file("documentation/homepage.svg"))
-        customStyleSheets = listOf(file("documentation/logo-styles.css"))
-        footerMessage = dokkaCopyrightMessage
-        homepageLink = dokkaHomepageUrl
+    pluginsConfiguration.html {
+        customAssets.from(file("documentation/gitlive-logo.png"), file("documentation/homepage.svg"))
+        customStyleSheets.from(file("documentation/logo-styles.css"))
+        footerMessage.set(dokkaCopyrightMessage)
+        homepageLink.set(dokkaHomepageUrl)
     }
 }
 
@@ -57,29 +48,50 @@ subprojects {
     val skipDocumentation = nonDocumentationList.contains(project.name)
     if (!skipDocumentation) {
         apply(plugin = "org.jetbrains.dokka")
-    }
 
-    this.tasks.withType<DokkaTaskPartial>().configureEach {
-        pluginConfiguration<DokkaBase, DokkaBaseConfiguration> {
-            footerMessage = dokkaCopyrightMessage
-            separateInheritedMembers = false
-            homepageLink = dokkaHomepageUrl
-        }
-        dokkaSourceSets {
-            configureEach {
-                documentedVisibilities.set(setOf(DokkaConfiguration.Visibility.PUBLIC))
-                includes.setFrom("documentation.md")
+        extensions.configure<DokkaExtension> {
+            moduleVersion.set(project.version.toString())
+
+            pluginsConfiguration.html {
+                footerMessage.set(dokkaCopyrightMessage)
+                separateInheritedMembers.set(false)
+                homepageLink.set(dokkaHomepageUrl)
+            }
+
+            dokkaSourceSets.configureEach {
+                documentedVisibilities.set(setOf(VisibilityModifier.Public))
+                includes.from("documentation.md")
 
                 sourceLink {
                     localDirectory.set(projectDir.resolve("src"))
-                    remoteUrl.set(URL("$dokkaHomepageUrl/tree/master/${project.name}/src"))
+                    remoteUrl("$dokkaHomepageUrl/tree/master/${project.name}/src")
                 }
             }
-            if (this.names.contains("jsMain")) {
-                named("jsMain") {
+            if (dokkaSourceSets.names.contains("jsMain")) {
+                dokkaSourceSets.named("jsMain") {
                     perPackageOption {
                         // External files for JS should not be documented since they will not be available
                         matchingRegex.set(".*.externals.*")
+                        suppress.set(true)
+                    }
+                }
+            }
+            // In some modules (e.g. firebase-app) jvmMain reuses androidMain's source directory, which makes Dokka's
+            // pre-generation check fail on the two source sets sharing a physical source root. The androidMain
+            // source set already documents the same code there, so jvmMain is suppressed instead of documented
+            // twice - but only when the directories actually overlap, since other modules (e.g. firebase-perf) give
+            // jvmMain its own distinct sources that should still be documented.
+            // Applied in afterEvaluate since the Kotlin Gradle Plugin adapter populates/overwrites dokkaSourceSets
+            // from the real KGP source directories only once project evaluation (incl. the kotlin {} block) completes.
+            project.afterEvaluate {
+                val kotlinSourceSets = extensions.findByType<KotlinMultiplatformExtension>()?.sourceSets
+                val androidMainDirs = kotlinSourceSets?.findByName("androidMain")?.kotlin?.srcDirs.orEmpty()
+                val jvmMainDirs = kotlinSourceSets?.findByName("jvmMain")?.kotlin?.srcDirs.orEmpty()
+                if (androidMainDirs.isNotEmpty() && jvmMainDirs.isNotEmpty() && androidMainDirs.any { it in jvmMainDirs }) {
+                    dokkaSourceSets.named("jvmMain") {
+                        // suppress alone does not stop Dokka's pre-generation source-root-overlap check
+                        // (https://github.com/Kotlin/dokka/issues/3701), so the shared root is cleared too.
+                        sourceRoots.setFrom(emptyList<Any>())
                         suppress.set(true)
                     }
                 }
